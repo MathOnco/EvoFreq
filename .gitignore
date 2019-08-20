@@ -1,4 +1,6 @@
-*.*
+.DS_Store
+.Rbuildignore
+.Rhistory
 !*.R
 !*.Rproj
 !.gitignore
