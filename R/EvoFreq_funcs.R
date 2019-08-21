@@ -283,58 +283,59 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #'
 #'@examples
 #'\donttest{
-# data("example.easy.wide")
-# ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-# time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
-# attribute_col_idx <-suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
-# 
-# attribute_df <- example.easy.wide[, attribute_col_idx]
-# size_df <- example.easy.wide[, time_col_idx]
-# parents <- example.easy.wide$parents
-# clones <- example.easy.wide$clones
-# 
-# ### Default is to plot size
-# freq_frame <- get_evofreq(size_df, clones, parents)
-# evo_p_by_size <- plot_evofreq(freq_frame)
-# 
-# ### Can also plot frequency by setting scale_by_sizes_at_time = TRUE.
-# freq_frame <- get_evofreq(size_df, clones, parents, scale_by_sizes_at_time = TRUE)
-# evo_p_by_freq <- plot_evofreq(freq_frame)
-# 
-# ### Default is to mildly smooth corners, but this can be turned by setting interpolation_steps = 0
-# freq_frame <- get_evofreq(size_df, clones, parents, interpolation_steps = 0)
-# raw_evo_p <- plot_evofreq(freq_frame)
-# 
-# ### Several other methods to smooth corners, including using Bezier curves. However, Bezier curves dont represent the data as accurately as the methods that use splinefun, i.e. c("fmm", "periodic", "natural", "monoH.FC", "hyman")
-# freq_frame <- get_evofreq(size_df, clones, parents, interp_method = "bezier")
-# bez_evo_p <- plot_evofreq(freq_frame)
-# 
-# ### Data can also be provided as mutaiton frequencies by setting data_type = "mutation"
-# mutation_count_df <- get_mutation_df(size_df, clones, parents)
-# freq_frame <- get_evofreq(mutation_count_df, clones, parents, data_type = "mutation")
-# evo_p_from_mutation <- plot_evofreq(freq_frame)
-# 
-# ### Input needs to be in wide format, but can convert long format data to wide format using \code{\link{long_to_wide_freqframe}}
-# wide_df_info <- long_to_wide_freqframe(long_pop_sizes_df = example.easy.long.sizes, time_col_name = "Time", clone_col_name = "clone", parent_col_name = "parent", size_col_name = "Size", edges_df = example.easy.long.edges)
-# clones_from_long <- wide_df_info$clones
-# parents_from_long <- wide_df_info$parents
-# size_df_from_long <- wide_df_info$wide_size_df
-# freq_frame <- get_evofreq(size_df_from_long, clones_from_long, parents_from_long)
-# evo_p_from_long <- plot_evofreq(freq_frame)
-# 
-# ### Can also color each genotype by an attribute. This can be set when getting the frequency dynamics, or by updating the color later using \code{\link{update_colors}}
-# data("example.easy.wide.with.attributes")
-# ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-# time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-# attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-# attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
-# attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
-# attr_parents <- example.easy.wide.with.attributes$parent
-# attr_clones <- example.easy.wide.with.attributes$clone
-# clone_id_col <- "clone"
-# ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package
-# freq_frame <- get_evofreq(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col, clone_cmap="magma")
-# fitness_evo_p <- plot_evofreq(freq_frame)
+#' data("example.easy.wide")
+#' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+#' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
+#' attribute_col_idx <-suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
+#' 
+#' attribute_df <- example.easy.wide[, attribute_col_idx]
+#' size_df <- example.easy.wide[, time_col_idx]
+#' parents <- example.easy.wide$parents
+#' clones <- example.easy.wide$clones
+#' 
+#' ### Default is to plot size
+#' freq_frame <- get_evofreq(size_df, clones, parents)
+#' evo_p_by_size <- plot_evofreq(freq_frame)
+#' 
+#' ### Can also plot frequency by setting scale_by_sizes_at_time = TRUE.
+#' freq_frame <- get_evofreq(size_df, clones, parents, scale_by_sizes_at_time = TRUE)
+#' evo_p_by_freq <- plot_evofreq(freq_frame)
+#' 
+#' ### Default is to mildly smooth corners, but this can be turned by setting interpolation_steps = 0
+#' freq_frame <- get_evofreq(size_df, clones, parents, interpolation_steps = 0)
+#' raw_evo_p <- plot_evofreq(freq_frame)
+#' 
+#' ### Several other methods to smooth corners, including using Bezier curves. However, Bezier curves dont represent the data as accurately as the methods that use splinefun, i.e. c("fmm", "periodic", "natural", "monoH.FC", "hyman")
+#' freq_frame <- get_evofreq(size_df, clones, parents, interp_method = "bezier")
+#' bez_evo_p <- plot_evofreq(freq_frame)
+#' 
+#' ### Data can also be provided as mutaiton frequencies by setting data_type = "mutation"
+#' mutation_count_df <- get_mutation_df(size_df, clones, parents)
+#' freq_frame <- get_evofreq(mutation_count_df, clones, parents, data_type = "mutation")
+#' evo_p_from_mutation <- plot_evofreq(freq_frame)
+#' 
+#' ### Input needs to be in wide format, but can convert long format data to wide format using \code{\link{long_to_wide_freqframe}}
+#' wide_df_info <- long_to_wide_freqframe(long_pop_sizes_df = example.easy.long.sizes, time_col_name = "Time", clone_col_name = "clone", parent_col_name = "parent", size_col_name = "Size", edges_df = example.easy.long.edges)
+#' clones_from_long <- wide_df_info$clones
+#' parents_from_long <- wide_df_info$parents
+#' size_df_from_long <- wide_df_info$wide_size_df
+#' freq_frame <- get_evofreq(size_df_from_long, clones_from_long, parents_from_long)
+#' evo_p_from_long <- plot_evofreq(freq_frame)
+#' 
+#' ### Can also color each genotype by an attribute. This can be set when getting the frequency dynamics, or by updating the color later using \code{\link{update_colors}}
+#' data("example.easy.wide.with.attributes")
+#' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+#' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
+#' attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
+#' attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
+#' attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
+#' attr_parents <- example.easy.wide.with.attributes$parent
+#' attr_clones <- example.easy.wide.with.attributes$clone
+#' clone_id_col <- "clone"
+#' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package
+#' freq_frame <- get_evofreq(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col, clone_cmap="magma")
+#' fitness_evo_p <- plot_evofreq(freq_frame)
+#'}
 #'@export
 get_evofreq <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, attribute_val_name = NULL, clone_id_col_in_att_df="clone_id", clone_cmap='rainbow_soft', threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, attribute_val_range = NULL, add_origin=F, tm_frac=0.6){
   # # ## FOR TESTING ###
