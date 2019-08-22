@@ -77,7 +77,8 @@ update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL,
     }
 
 
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    # attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    attribute_df <- data.frame("clone_id"=clones)
     attribute_df[attribute_val_name] <- fill_value
 
     r_colors <- colors()
@@ -109,7 +110,8 @@ update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL,
       }
       clone_color <- get_attribute_colors(fill_value, min_x = fill_range[1], max_x = fill_range[2], cmap=clone_cmap)
     }
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
+    # attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
+    attribute_df <- data.frame("clone_id"=clones, "plot_color"=clone_color)
     if(!user_defined_colors){
       attribute_df[attribute_val_name] <- fill_value
     }
@@ -121,7 +123,8 @@ update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL,
       clone_cmap <- 'rainbow_soft'      
     }
     clone_color <- get_clone_color(length(clones), clone_cmap)
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
+    # attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
+    attribute_df <- data.frame("clone_id"=clones, "plot_color"=clone_color)
   }
 
   attribute_df$cmap <- clone_cmap

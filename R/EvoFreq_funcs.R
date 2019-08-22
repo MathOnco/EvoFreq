@@ -370,7 +370,6 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, time_pts=NULL
   # add_origin <- F
   # tm_frac <- 0.6
   # # ###
-  
   if(!is.null(fill_value)){
     attribute_val_name <- deparse(substitute(fill_value))
     if(grepl("\\$", attribute_val_name)){
