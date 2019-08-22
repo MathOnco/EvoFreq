@@ -25,7 +25,7 @@ filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   # fill_gaps_in_size <- F
   # test_links <- T
   # threshold <- 0.01
-  # attribute_val_range <- NULL
+  # fill_range <- NULL
   # add_origin <- T
   # tm_frac <- 0.6
   #####
@@ -210,7 +210,6 @@ beta_growth_fxn <- function(x, te, tm, y_max){
   return(y)
 }
 
-
 add_origin_mat <- function(mut_freq, tm_frac=0.6){
   ### FOR TESTING 
   # mut_freq = freq_mat
@@ -264,10 +263,9 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #'@param size_df Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint
 #'@param clones Array containing the clone ids. The index of each clone must correspond to the same index of the row in \code{size_df} that contains the sizes of that clone over time
 #'@param parents Array containing the ids of the parent of each clone in the \code{clones} array.
+#'@param fill_value Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{colors()}
+#'@param fill_range Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.
 #'@param time_pts Array containing the name of the timepoints. If NULL, then the name of timepoints will be a sequence from 1 to the number of columns in \code{size_df}.
-#'@param attribute_df Optional dataframe containing attributes for each clone that can be used to determine the color of each clone in the plot. This can include a column of custom colors to use \code{attribute_val_name}.
-#'@param attribute_val_name String defining which column in \code{attribute_df} will be used to color each clone. If attribute column values are a hex code in this column, these colors will be used instead of \code{clone_cmap}.
-#'@param clone_id_col_in_att_df Name of the column in attribute_df that contains the clone IDs
 #'@param clone_cmap Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.
 #'@param threshold The minimum frequency of clones to be plotted. Clones with with a frequency below this value will not be plotted
 #'@param scale_by_sizes_at_time Boolean defining whether or not the plot should represent the size or frequency of each clone at each timepoint. If TRUE, the sizes are scaled by the maximum size at each timepoint, and the plot thus represents the clonal frequencies at each timepoint. If FALSE, the sizes are scaled using the maximum size in \code{size_df}, thus reflecting relative population sizes
@@ -276,7 +274,7 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #'@param interp_method String identifying the interpolation method to use. Either "bezier", or a method used by \code{\link[stats]{splinefun}}
 #'@param fill_gaps_in_size Boolean defining whether or not missing sizes should be filled in
 #'@param test_links Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion. 
-#'@param attribute_val_range Range of values for the attribute to color by. If NULL, then range is determined from the attribute data
+#'@param fill_range Range of values for the attribute to color by. If NULL, then range is determined from the attribute data
 #'@param add_origin Boolean defining whether or not to add origin positions to founder clones, even if not present in the data. Best for sparse observed data
 #'@param tm_frac Value between 0 and 1 that determines where the maximum growth rate is in the inferred origin sizes. Lower values result in earlier maximum growth
 #'@return Formatted dataframe called a "freq_frame" containing the information needed to plot the frequency dynamics over time.
@@ -286,9 +284,6 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #' data("example.easy.wide")
 #' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 #' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
-#' attribute_col_idx <-suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
-#' 
-#' attribute_df <- example.easy.wide[, attribute_col_idx]
 #' size_df <- example.easy.wide[, time_col_idx]
 #' parents <- example.easy.wide$parents
 #' clones <- example.easy.wide$clones
@@ -314,52 +309,86 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #' freq_frame <- get_evofreq(mutation_count_df, clones, parents, data_type = "mutation")
 #' evo_p_from_mutation <- plot_evofreq(freq_frame)
 #' 
-#' ### Input needs to be in wide format, but can convert long format data to wide format using \code{\link{long_to_wide_freqframe}}
+#' ### Input needs to be in wide format, but can be converted to long format data to wide format using \code{\link{long_to_wide_freqframe}}
 #' wide_df_info <- long_to_wide_freqframe(long_pop_sizes_df = example.easy.long.sizes, time_col_name = "Time", clone_col_name = "clone", parent_col_name = "parent", size_col_name = "Size", edges_df = example.easy.long.edges)
 #' clones_from_long <- wide_df_info$clones
 #' parents_from_long <- wide_df_info$parents
 #' size_df_from_long <- wide_df_info$wide_size_df
 #' freq_frame <- get_evofreq(size_df_from_long, clones_from_long, parents_from_long)
 #' evo_p_from_long <- plot_evofreq(freq_frame)
+#'
+#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
+#' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument. 
+#' jet_freq_frame <- get_evofreq(size_df, clones, parents, clone_cmap = "jet")
+#' jet_evo_p <- plot_evofreq(jet_freq_frame)
 #' 
-#' ### Can also color each genotype by an attribute. This can be set when getting the frequency dynamics, or by updating the color later using \code{\link{update_colors}}
-#' data("example.easy.wide.with.attributes")
-#' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-#' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#' attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#' attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
-#' attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
-#' attr_parents <- example.easy.wide.with.attributes$parent
-#' attr_clones <- example.easy.wide.with.attributes$clone
-#' clone_id_col <- "clone"
-#' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package
-#' freq_frame <- get_evofreq(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col, clone_cmap="magma")
-#' fitness_evo_p <- plot_evofreq(freq_frame)
+#' ### Can color each clone by an attribute by providing a \code{fill_value}. Default colormap is viridis, but this can be changed using the \code{clone_cmap} argument
+#' fitness <- runif(length(clones))
+#' fitness_freq_frame <- get_evofreq(size_df, clones, parents, fill_value = fitness)
+#' fitness_evo_p <- plot_evofreq(fitness_freq_frame)
+#' 
+#' ### The user can also provide custom colors for each clone, which will need to be passed into the \code{fill_value} argument
+#' ### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
+#' rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+#' rgb_freq_frame <- get_evofreq(size_df, clones, parents, rgb_clone_colors)
+#' rgb_evo_p <- plot_evofreq(rgb_freq_frame)
+#' 
+#' ### Custom colors can also be any of the named colors in R. A list of the colors can be found with \code{colors()}
+#' named_clone_colors <- sample(colors(), length(clones), replace = F)
+#' named_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = named_clone_colors)
+#' named_evo_p <- plot_evofreq(named_freq_frame)
+#' 
+#' ### Custom colors can also be specified using hexcode
+#' hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+#' hex_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = hex_clone_colors)
+#' hex_evo_p <- plot_evofreq(hex_freq_frame)
+
 #'}
 #'@export
-get_evofreq <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, attribute_val_name = NULL, clone_id_col_in_att_df="clone_id", clone_cmap='rainbow_soft', threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, attribute_val_range = NULL, add_origin=F, tm_frac=0.6){
+get_evofreq <- function(size_df, clones, parents, fill_value=NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, fill_range = NULL, add_origin=F, tm_frac=0.6){
   # # ## FOR TESTING ###
-  # size_df <- mutation_count_df #mut_freq
-  # clones <- mut_df$clone
-  # parents <- mut_df$parent
+  # data("example.easy.wide.with.attributes")
+  # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+  # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
+  # size_df <- example.easy.wide[, time_col_idx]
+  # parents <- example.easy.wide$parents
+  # clones <- example.easy.wide$clones
+  # fill_value <- clone_attribute_colors
   # threshold <- 0.0
-  # clone_cmap <- "rainbow_soft"
+  # clone_cmap <- NULL
   # time_pts <- NULL
-  # attribute_val_name <- NULL #"fitness" #"new_antigenicity"
-  # attribute_df <- NULL #attribute_df
-  # attribute_val_range <-  NULL
-  # data_type <- "mutation" "size"
+  # fill_range <-  NULL
   # scale_by_sizes_at_time <- F
   # interpolation_steps <- 10
   # fill_gaps_in_size <- F
   # test_links <- T
-  # clone_id_col_in_att_df <- "clone"
   # data_type <- "size"
   # interp_method <- "monoH.FC"# "bezier"
-  # add_origin <- T
+  # add_origin <- F
   # tm_frac <- 0.6
-  # threshold=0.01
   # # ###
+  
+  if(!is.null(fill_value)){
+    attribute_val_name <- deparse(substitute(fill_value))
+    if(grepl("\\$", attribute_val_name)){
+      ### Value was passed in as a column in a dataframe
+      attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
+    }else if(grepl("\\[.*\\]", attribute_val_name)){
+      ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
+      attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
+    }
+    
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    attribute_df[attribute_val_name] <- fill_value
+  }else{
+    attribute_df <- NULL
+    attribute_val_name <- NULL
+  }
+  
+  ###TODO delete block. Only for debugging
+  # attribute_val_name <- "clone_attribute_colors" 
+  # colnames(attribute_df)[colnames(attribute_df)=="fill_value"] <- attribute_val_name
+  ##############
   
   og_time_pts <- colnames(size_df)
   to_plot_df <- filter_data(size_df = size_df, clones = clones, parents = parents, time_pts = time_pts, attribute_df = attribute_df, threshold = threshold, scale_by_sizes_at_time = scale_by_sizes_at_time, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links, add_origin=add_origin, tm_frac=tm_frac)
@@ -369,19 +398,18 @@ get_evofreq <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   max_mutation_size <- to_plot_df$max_size
   time_pt_names <- to_plot_df$og_colnames
   time_pt_df <- data.frame("x"=colnames(freq_mat), "Time_label"=time_pt_names)
-  # parents[!parents %in% clones]
+
   if(!is.null(attribute_df)){
     attribute_df <- to_plot_df$attributes
   }
 
   if(!is.null(attribute_val_name)){
     attribute_vals <- attribute_df[,attribute_val_name]
-    if(is.null(attribute_val_range)){
-      attribute_val_range <- range(attribute_vals, na.rm = T)
+    if(is.null(fill_range)){
+      fill_range <- range(attribute_vals, na.rm = T)
     }
   }
   
-  ### Get color values
   cat("\n")
   print("Getting Plot Positions")
   time_pts <- colnames(freq_mat)
@@ -391,16 +419,6 @@ get_evofreq <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   if(interpolation_steps > 0){
     cat("\n")
     print("Smoothing Polygons")
-    # if(add_origin & (interp_method=="bezier" | interp_method=="bezier_curve_fit")){
-    #   pos_split_l <- split(plot_pos_df, f = plot_pos_df$clone_id)
-    #   for(cid in names(pos_split_l)){
-    #     c_df <- pos_split_l[[cid]]
-    #     min_x <- min(c_df$x)
-    #     keep_idx <- which(c_df$x==min_x | c_df$x > 0)
-    #     pos_split_l[[cid]] <- c_df[keep_idx, ]
-    #   }
-    #   plot_pos_df <- do.call(rbind, pos_split_l)
-    # }
     plot_pos_df <- smooth_pos(plot_pos_df, n_intermediate_steps = interpolation_steps, interp_method=interp_method)
   }
   plot_pos_df$extinction_time <- max(plot_pos_df$x)
@@ -420,24 +438,16 @@ get_evofreq <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
     }
   }
   
-  plot_pos_df <- update_colors(plot_pos_df, attribute_df = attribute_df, attribute_val_name = attribute_val_name, clone_id_col_in_att_df = clone_id_col_in_att_df, attribute_range = attribute_val_range, clone_cmap = clone_cmap)
+  ### Supply attribute name since using deparse inside get_evofreq will return fill_value for the name of the attribute
+  plot_pos_df <- update_colors(evo_freq_df = plot_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, attribute_range = fill_range, attribute_val_name=attribute_val_name)
   
-  if(!is.null(attribute_df)){
   
-    clone_col_idx <- which(colnames(attribute_df)==clone_id_col_in_att_df)
-
-    colnames(attribute_df)[clone_col_idx] <- "clone_id"
-    plot_pos_df <- merge(plot_pos_df, attribute_df, all.x = T, all.y = F, by="clone_id")
-    dup_x_col_idx <- grep("\\.x", colnames(plot_pos_df))
-    if(length(dup_x_col_idx)>0){
-      dup_y_col_idx <- grep("\\.y", colnames(plot_pos_df))
-      new_x_colnames <- colnames(plot_pos_df)[dup_x_col_idx]
-      new_x_colnames <- gsub( "\\.x", "", new_x_colnames)
-      colnames(plot_pos_df)[dup_x_col_idx] <- new_x_colnames
-      plot_pos_df <- plot_pos_df[-dup_y_col_idx]    
-    }
-    
-  }
+  # if(!is.null(attribute_val_name)){
+  #   ### Using deparse inside get_evofreq will return fill_value for the name of the attribute
+  #   plot_pos_df$efp_color_attribute <- attribute_val_name  
+  #   colnames(plot_pos_df)[colnames(plot_pos_df)=="fill_value"] <- attribute_val_name
+  # }
+  
   
   if(!scale_by_sizes_at_time){
     plot_pos_df$y <- plot_pos_df$y*max_mutation_size
@@ -460,21 +470,7 @@ get_evofreq <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   
   plot_pos_df <- merge(plot_pos_df, time_pt_df, by="x", all=T)
   plot_pos_df <- plot_pos_df[order(plot_pos_df$row_id), ]
-  # 
-  # unique(plot_pos_df2$Time_label)
-  # plot_pos_df2 <- merge(plot_pos_df, time_pt_df, by="x", all=T)
-  # plot_pos_df2 <- plot_pos_df2[order(plot_pos_df2$row_id), ]
-  # unique(plot_pos_df$)
-  # nrow(plot_pos_df2)
-  # nrow(plot_pos_df)
-  # head(plot_pos_df)
-  # nrow(subset(plot_pos_df, clone_id==plot_pos_df$clone_id[1]))
-  # sapply(as.character(unique(plot_pos_df$clone_id)), function(x){seq(1, nrow(subset(plot_pos_df, clone_id==x)))})
-  # sapply(as.character(unique(plot_pos_df$clone_id)), function(x){nrow(subset(plot_pos_df, clone_id==x))})
-  # # sapply(unique(plot_pos_df$clone_id), function(x){x))})
-  # head(plot_pos_df2)
-  # nrow(plot_pos_df)
-  # nrow(plot_pos_df2)
+
   # plot_evofreq(plot_pos_df)
   
   return(plot_pos_df)
@@ -1092,6 +1088,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 # print(movie_p)
 #'}
 #'@export
+# plot_evofreq(pos_df)
 plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=NULL, bw=0.05, bc="grey75", show_axes=T){
   
   ### FOR TESTING ###
@@ -1100,8 +1097,10 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
   # end_time <-  NULL
   # bw <- 0.05
   # bc <- "grey75"
-  # freq_frame <- pos_df_fitness_color
+  # freq_frame <- attribute_freq_frame
   #####
+  
+  
   
   unique_time_pts <- unique(freq_frame$x)
   if(is.null(n_time_pts)){
@@ -1121,12 +1120,12 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
   color_attribute_name <- unique(view_df$efp_color_attribute)
   if(is.na(color_attribute_name)){
     color_attribute_name <- "plot_color"
-  }else{
-    color_df <-  view_df[duplicated(view_df$plot_color)==F, ]
-    color_df <- color_df[order(color_df[color_attribute_name]), ]
-    colorbar_colors <- color_df$plot_color
-    
-  }
+  }#else{
+  #   color_df <-  view_df[duplicated(view_df$plot_color)==F, ]
+  #   color_df <- color_df[order(color_df[color_attribute_name]), ]
+  #   colorbar_colors <- color_df$plot_color
+  #   
+  # }
 
   
   
@@ -1149,13 +1148,15 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
     ggplot2::theme_classic() +
     ggplot2::scale_x_continuous(breaks=as.numeric(as.character(time_pts_df$x)), labels=as.character(time_pts_df$Time_label)) +
     # ggplot2::scale_x_continuous(breaks=as.numeric(as.character(time_pt_df$x)), labels=as.character(time_pt_df$Time_label)) +
-    ggplot2::theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
     # ggplot2::coord_cartesian(xlim=c(0, max_x), clip = "on", expand="F")
   
   if(color_attribute_name=="plot_color"){
     ggevodyn <- ggevodyn + ggplot2::scale_fill_identity()
   }else{
-    ggevodyn <- ggevodyn + ggplot2::scale_fill_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    colormap_name <- unique(view_df$cmap)
+    # ggevodyn <- ggevodyn + ggplot2::scale_fill_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    ggevodyn <- ggevodyn + colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
   }
   
   if(! show_axes){
@@ -1393,5 +1394,4 @@ get_evofreq_labels <- function(freq_frame, apply_labels=FALSE, custom_label_text
     return(position_df) # just return dataframe
   }
 }
-
 
