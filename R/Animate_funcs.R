@@ -1,4 +1,3 @@
-
 #'@title animate_evogram
 #'
 #'View changes in the dendrogram over time. Has most of the same options as \code{\link{plot_evogram}}, but does not have option to set link type
@@ -31,17 +30,17 @@
 #' print(movie_p)
 #'}
 #'@export
-animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, attribute_val_name = NULL, clone_id_col_in_att_df = "clone_id", clone_cmap='rainbow_soft', threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, attribute_val_range = NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="level"){
+animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, attribute_val_name = NULL, clone_id_col_in_att_df = "clone_id", clone_cmap='rainbow_soft', threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, attribute_val_range = NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
   # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
-  # ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+  ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
   # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
   # attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
   # attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
   # size_df <- example.easy.wide.with.attributes[, time_col_idx]
   # parents <- example.easy.wide.with.attributes$parent
   # clones <- example.easy.wide.with.attributes$clone
-  # 
+  #
   # clone_cmap <- "rainbow_soft"
   # size_df <- size_df
   # threshold <- 0.01
@@ -65,20 +64,56 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   # clone_id_col_in_att_df <- "clone"
   #####
   
-  to_plot_df <- filter_data(size_df = size_df, clones = clones, parents = parents, time_pts = time_pts, attribute_df = attribute_df, threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
-  clones <- to_plot_df$clones
-  parents <- to_plot_df$parents
-  freq_mat <- to_plot_df$freq_mat
-  attribute_df <- to_plot_df$attributes
+  if(is.null(time_pts)){
+    time_pts <- colnames(size_df)
+  }
   
-  attribute_df$node_id <- seq(1, length(clones))
+  all_time_df_list <- list()
+  
+  cat("\n")
+  print("Making Movie Frames")
+  pb <- utils::txtProgressBar(min = 1, max = length(time_pts), style = 3)
+  for(time_idx in seq(length(time_pts))){
+    utils::setTxtProgressBar(pb, time_idx)
+    tp <- time_pts[time_idx]
+    sink("/dev/null") ### Suppress output
+    to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df, clone_id_col_in_att_df=clone_id_col_in_att_df, threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
+    sink()
+    time_dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
+    time_dendro_pos <- get_straight_links(time_dendro_pos)
+    time_dendro_pos$time <- time_idx
+    
+    all_time_df_list[[as.character(tp)]] <- time_dendro_pos
 
-  intital_d_pos_list <- get_initial_d_pos(freq_mat, clones, parents, attribute_df, attribute_val_name)
-  matched_d_pos_list <- match_d_pos(intital_d_pos_list)
-  recentered_d_pos_list <- recenter_parents(matched_d_pos_list)
-  final_d_pos_list <- set_clone_origin_d_pos(recentered_d_pos_list)
-  d_pos_with_links_list <- add_links(final_d_pos_list)
-  d_pos_df <- do.call(rbind, d_pos_with_links_list)
+    if(time_idx==1){next()}
+    
+    prev_pos_df <- all_time_df_list[[as.character(time_pts[time_idx-1])]]
+    
+    new_clone_idx <- which(!time_dendro_pos$clone_id %in% prev_pos_df$clone_id)
+    
+    if(length(new_clone_idx)>0){
+      for(cidx in new_clone_idx){
+        new_clones_parent <- time_dendro_pos$parent[cidx]
+        parent_idx <- which(prev_pos_df$clone_id == new_clones_parent)
+        new_clone_df <- time_dendro_pos[cidx, ]
+        new_clone_df$time <- prev_pos_df$time[parent_idx]
+        new_clone_df$freq <- 0
+        new_clone_df[c("y", "tree_y", "dendro_y", "x", "time", "origin")] <- prev_pos_df[parent_idx, c("y", "tree_y", "dendro_y", "x", "time", "origin")]
+        new_clone_df$end_x <- new_clone_df$x
+        new_clone_df$end_y <- new_clone_df$y
+        new_clone_df$end_tree_y <- new_clone_df$tree_y
+        new_clone_df$end_origin <- new_clone_df$origin
+        new_clone_df$end_dendro_y <- new_clone_df$dendro_y
+        prev_pos_df[parent_idx,]
+        # new_clone_df[c("end_x", "end_y", "end_tree_y", "end_origin", "end_dendro_y")] <- NA
+        prev_pos_df <- rbind(prev_pos_df, new_clone_df)
+      }
+      all_time_df_list[[as.character(time_pts[time_idx-1])]] <- prev_pos_df
+    }
+  }
+  
+  
+  d_pos_df <- do.call(rbind, all_time_df_list)
   d_pos_df <- d_pos_df[order(d_pos_df$time), ]
   
   if(is.null(attribute_val_name)){
@@ -86,16 +121,6 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   }
   
   d_pos_df <- update_colors(evo_freq_df = d_pos_df, attribute_df = attribute_df, attribute_val_name = attribute_val_name, clone_id_col_in_att_df=clone_id_col_in_att_df, clone_cmap = clone_cmap, attribute_range = attribute_val_range)
-  
-  
-  # if(depth == "origin"){
-  #   y_name <- "origin_y"
-  #   end_y_name <- "end_origin"
-  #   d_pos_df$origin_y <- d_pos_df$origin
-  # }else{
-  #   y_name <- "tree_y"
-  #   end_y_name <- "end_y"
-  # }
   
   if(depth == "origin"){
     y_name <- "origin_y"
@@ -119,8 +144,6 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
     
   }
   
-  # p <- ggplot(d_pos_df, aes(x=x, y=tree_y, color=plot_color, group=clone_id, xend=end_x, yend=end_y, size=freq)) +
-  #   geom_segment(color="black", size=1, na.rm=T)
   
   p <- ggplot2::ggplot(d_pos_df, aes_string(x="x", y=y_name, color=color_attribute_name, group="clone_id", xend="end_x", yend=end_y_name, size="freq")) +
     ggplot2::geom_segment(color="black", size=1, na.rm=T)
@@ -144,18 +167,19 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   
   p <- p + ggplot2::theme_void()
   
-  # movie_p <- p +
-  #   transition_time(time) +
-  #   ease_aes() +
-  #   exit_shrink() +
-  #   ggtitle('Time {frame_time}')
+  movie_p <- p +
+    transition_time(time) +
+    ease_aes() +
+    exit_shrink() +
+    ggtitle('Time {frame_time}')
   
   return(list("dendro_pos_df"=d_pos_df, "animation_plot"=p))
 }
 
+
 add_links <- function(d_pos_list){
   ###FOR TESTING ###
-  # d_pos_list <- final_d_pos_list
+  # d_pos_list <- d_pos_df
   ####
   
   for(tidx in names(d_pos_list)){
@@ -310,7 +334,7 @@ match_d_pos <- function(d_pos_list){
       ### Clone existed in previous time step. Change its position based on its updated previous positions
       for(ecidx in extant_clone_idx){
         ecid <- current_d$clone_id[ecidx]
-
+        
         
         idx_in_updated_prev_pos <- which(updated_prev_pos_df$clone_id==ecid)
         prev_x <- updated_prev_pos_df$x[idx_in_updated_prev_pos]
@@ -414,121 +438,3 @@ get_initial_d_pos <- function(mut_freq, clones, parents, attribute_df, attribute
   return(pos_df_list)
   
 }
-
-#'\code{animate_freq_dynamics} Animate frequency dynamics
-#'@inheritParams get_evofreq
-#'@inheritParams plot_evofreq
-#'@param fps Number of frames per second
-#'@param ani_f_out filename to use for saving animation. Needs to end in either .gif or .mp4
-#'@param step_size number of timesteps between those that should be plotted. A value of 1 plots all time steps, a value of 2 plots every other timestep, etc...
-#'@examples
-#'data("example.easy.wide.with.attributes")
-#'### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-#'time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide))))) 
-#'attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
-#'size_df <- example.easy.wide[, time_col_idx]
-#'parents <- example.easy.wide$parent
-#'clones <- example.easy.wide$clone
-#'
-#'#### Can animate muller plot saving as mp4. Saving as mp4 requires the ffmpeg to be installed. gifs 
-#'pos_df <- get_evofreq(size_df, clones, parents)
-#'\donttest{
-#'#'animate_freq_dynamics(pos_df, ani_f_out = "evo_freq_movie.mp4")
-#'animate_freq_dynamics(pos_df, ani_f_out = "evo_freq_movie.gif")
-#'}
-#'
-#'Alternatively, one can use the gganimate package to animate the Muller plots
-#'evo_p <- plot_evofreq(pos_df)
-#'movie_p <- evo_p + transition_reveal(x) + #transition_manual(movie_time) +
-#'  view_follow()
-#'@export
-# animate_freq_dynamics <- function(pos_df, bw=0.05, bc="grey75", fps=10, ani_f_out = "evo_dynamics.mp4", step_size=1, start_time=NULL, end_time=NULL, interpolation_steps = 10){
-#   if (!requireNamespace("magick", quietly = TRUE)) {
-#     stop("Package \"magick\" needed for this function to work. Please install it.",
-#          call. = FALSE)
-#   }
-#   
-#   ### FOR TESTING ###
-#   # pos_df <- sparse_pos_df
-#   # step_size <- 1
-#   # start_time=NULL
-#   # end_time=NULL
-#   # ani_f_out = "freq.gif" #"freq.mp4"
-#   # out_w <- 6
-#   # out_h <- 3
-#   # bw <- 0.05 
-#   # bc <- "grey75"
-#   ############
-#   time_pts <- unique(pos_df$x)
-#   final_time <- max(time_pts)
-#   
-#   # x_range <- range(pos_df$x)
-#   # y_range <- range(pos_df$y)
-#   
-#   if(is.null(start_time)){
-#     start_time <- time_pts[1]
-#   }
-#   if(is.null(end_time)){
-#     end_time <- final_time
-#   }
-#   start_idx <- which(time_pts== start_time)
-#   end_idx <- which(time_pts== end_time)
-#   time_pts <- time_pts[start_idx:end_idx]
-#   
-#   if(step_size > 1){
-#     spaced_idx <- seq(1, length(time_pts), by=step_size)
-#     time_pts <- time_pts[spaced_idx]
-#   }
-#   
-#   if(!final_time %in% time_pts){
-#     time_pts <- c(time_pts, final_time)
-#   }
-#   
-#   if (file.exists(ani_f_out)) file.remove(ani_f_out)
-#   movie_format <- strsplit(ani_f_out, ".", fixed = T)[[1]]
-#   movie_format <- movie_format[length(movie_format)]
-#   if(movie_format == "gif"){
-#     print("Creating gif")
-#     img <- magick::image_graph(600, 340, res = 1000)
-#     # img <- magick::image_graph(res = 1000)
-#     out <- lapply(time_pts, function(x){
-#       freq_plot_at_time <- plot_evofreq(pos_df, end_time = x, bw=bw, bc=bc)
-#       freq_plot_at_time <- freq_plot_at_time + theme_void()
-#       print(freq_plot_at_time)
-#     })
-#     grDevices::dev.off()
-#     animation <- magick::image_animate(img, fps = fps, dispose = "previous")
-#     magick::image_write(animation, ani_f_out)
-#     return(animation)
-#   }else{
-#     tmp_img_dir <- ".temp_freq_imgs/"
-#     dir.create(tmp_img_dir, showWarnings = F)
-#     n_time_pts <- length(time_pts)
-#     
-#     img_prefix <- paste0("%0",nchar(as.character(n_time_pts)), 'd.png')
-#     print("Creating mp4")
-#     pb <- utils::txtProgressBar(min = 0, max = n_time_pts, style = 3)
-#     for(i in seq(n_time_pts)){
-#       utils::setTxtProgressBar(pb, i)
-#       
-#       end_time <- time_pts[i]
-#       freq_plot_at_time <- plot_evofreq(pos_df, end_time = end_time, bw=bw, bc=bc)
-#       f_out <- paste0(tmp_img_dir, sprintf(img_prefix, i))
-#       ggplot2::ggsave(f_out, freq_plot_at_time, width = 6, height = 3)
-#     }
-#     img_dir_prefix <- paste0(tmp_img_dir, img_prefix)
-#     animate_string <- paste("ffmpeg -i", img_dir_prefix,
-#                             "-pix_fmt", "yuv420p",
-#                             paste0("-vf fps=", fps),
-#                             "-b", "5000k",
-#                             "-vcodec", "libx264",
-#                             "-profile:v", "high",
-#                             "-preset", "veryslow",
-#                             ani_f_out)
-#     system(animate_string)
-#     # unlink(tmp_img_dir, recursive = T)
-#     return(NULL)
-#     
-#   }
-#   
-# }
