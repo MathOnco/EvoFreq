@@ -7,13 +7,14 @@ Visualization Package for Evolutionary Dynamics from Sequence and Model Data.
 install.packages('devtools')
 library(devtools)
 install_github('MathOnco/EvoFreq')
-library(EvoFreq)
 ```
 
 ## Using EvoFreq
 
 EvoFreq has two primary functions: `get_evofreq()` and the final rendering of these frequencies using `plot_evofreq()`. To quckly see all the functions within EvoFreq use `help(package="EvoFreq")`. The quickest way to see an EvoFreq plot is to use:
 ```R
+library(EvoFreq)
+
 data("example.easy.wide") # load example data
 
 freq_frame <- get_evofreq(example.easy.wide[,seq(3,10)], example.easy.wide$clones, example.easy.wide$parents, clone_cmap = "magma") # Get freq_frame, a properly structured data.frame
