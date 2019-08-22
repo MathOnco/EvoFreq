@@ -5,55 +5,61 @@
 #'@inheritParams get_evofreq
 #'@param evo_freq_df Dataframe returned by \code{\link{get_evofreq}} or \code{\link{get_evogram}} , which contains the information to plot the frequency dynamics
 #'@param clone_cmap String defining which colormap should be used to color the clones (nodes) if no attributes to color by. For a list of available colormaps, see \code{\link[colormap]{colormaps}}. If color not in  \code{\link[colormap]{colormaps}}, it is assumed all colors should be the same
-#'@param attribute_range Range of values for the attribute to color by. If NULL, then range is determined from the attribute data
-#'@param clone_id_col_in_att_df Name of the column in attribute_df that contains the clone IDs
+#'@param attribute_val_name String defining the name of the attribute used for coloring. If NULL, the default, the name will be inferred from the \code{fill_value} argument. 
 #'@examples
-#'### It is also possible to color genotypes by attributes, custom colors, or colormaps avaiable in \code{\link[colormap]{colormaps}
-#'data("example.easy.wide.with.attributes")
-#'### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-#'time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes))))) 
-#'attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#'attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
-#'attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
-#'attr_parents <- example.easy.wide.with.attributes$parent
-#'attr_clones <- example.easy.wide.with.attributes$clone
-#'clone_id_col <- "clone" ### Define which column in attribute_df contains the clone_ids
-#'### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package
-#'attribute_pos_df <- get_evofreq(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col)
-#'fitness_evo_p <- plot_evofreq(attribute_pos_df)
+#' data("example.easy.wide")
+#' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+#' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
+#' size_df <- example.easy.wide[, time_col_idx]
+#' parents <- example.easy.wide$parents
+#' clones <- example.easy.wide$clones
+#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
+#' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument. 
+#' freq_frame <- get_evofreq(size_df, clones, parents)
+#' evo_p <- plot_evofreq(freq_frame)
+#' 
+#' ### Can color each clone by an attribute by providing a \code{fill_value}. Default colormap is viridis, but this can be changed using the \code{clone_cmap} argument. There is also the option to set the color range using the \code{fill_range} argument
+#' fitness <- runif(length(clones),0, 100)
+#' fitness_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = fitness, fill_range= c(0, 100))
+#' fitness_evo_p <- plot_evofreq(fitness_freq_frame, fill_range = c(0, 100))
 #'
-#'###  Update color with custom color values in hexcode format
-#'pos_df_custom_color <- update_colors(attribute_pos_df, attribute_df, attribute_val_name = "color", clone_id_col_in_att_df = clone_id_col)
-#'custom_cmap_evo_p <- plot_evofreq(pos_df_custom_color)
+#' ### The user can also provide custom colors for each clone, which will need to be passed into the \code{fill_value} argument
+#' ### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
+#' rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+#' rgb_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = rgb_clone_colors)
+#' rgb_evo_p <- plot_evofreq(rgb_freq_frame)
+#' 
+#' ### Custom colors can also be any of the named colors in R. A list of the colors can be found with \code{colors()}
+#' named_clone_colors <- sample(colors(), length(clones), replace = F)
+#' named_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = named_clone_colors)
+#' named_evo_p <- plot_evofreq(named_freq_frame)
+#' 
+#' ### Custom colors can also be specified using hexcode
+#' hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+#' hex_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = hex_clone_colors)
+#' hex_evo_p <- plot_evofreq(hex_freq_frame)
 #'
-#'### Change clone color based on clone ids, specifying colormap. Default colormap is soft_rainbow, but can be changed to any colormap available in the colormaps package
-#'pos_df_clone_color <- update_colors(attribute_pos_df, clone_cmap = "jet")
-#'clone_cmap_evo_p <- plot_evofreq(pos_df_clone_color)
-#'
-#'### Revert to default colors based on clone ids
-#'pos_df_default_color <- update_colors(attribute_pos_df)
-#'default_cmap_evo_p <- plot_evofreq(pos_df_default_color)
-#'
-#'### Method can also be used to update node colors of the dendrograms
-#'attribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents)
-#'attribute_tree_pos <- attribute_dendro_df$dendro_pos
-#'attribute_links <- attribute_dendro_df$links
-#'tree_p <- plot_dendro(attribute_tree_pos, attribute_links)
+#' ### Method can also be used to update node colors of the dendrograms
+#' dendro_df <- get_evogram(size_df, clones, parents)
+#' tree_pos <- dendro_df$dendro_pos
+#' tree_links <- dendro_df$links
+#' tree_p <- plot_evogram(tree_pos, tree_links)
 #'
 #'### Color node by fitness
-#'tree_pos_fitness_color <- update_colors(evo_freq_df = attribute_tree_pos, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df=clone_id_col)
-#'tree_p_fitness <- plot_dendro(tree_pos_fitness_color, attribute_links)
-#'### Color node using custom colors in hexcode format
-#'tree_info_custom_color <- update_colors(evo_freq_df = attribute_tree_pos, attribute_df = attribute_df, attribute_val_name = "color", clone_id_col_in_att_df=clone_id_col)
-#'tree_p_custom_color <- plot_dendro(tree_info_custom_color, attribute_links)
+#' tree_pos_fitness_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = fitness)
+#' tree_p_fitness <- plot_evogram(tree_pos_fitness_color, tree_links)
+#' #'### Color node using custom colors in hexcode format
+#' tree_info_custom_color <- update_colors(evo_freq_df, clones = clones, fill_value = hex_clone_colors)
+#' tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 #'@export
-update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL, attribute_range=NULL, attribute_val_name=NULL){
+update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL, fill_range=NULL, attribute_val_name=NULL){
   ### FOR TESTING ###
-  # evo_freq_df <- plot_pos_df
+  # evo_freq_df <- d_pos_df
   # attribute_range <- NULL
   # clone_cmap <- NULL #"viridis"
-  # fill_value <- clone_attribute_colors
+  # fill_value <- fill_value
   # attribute_range <- fill_range
+  # attribute_val_name <- attribute_val_name
   ####
 
   if(!is.null(fill_value)){
@@ -98,11 +104,10 @@ update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL,
       if(is.null(clone_cmap)){
         clone_cmap <- 'viridis'      
       }
-      if(is.null(attribute_range)){
-        attribute_range <- range(fill_value, na.rm = T)
+      if(is.null(fill_range)){
+        fill_range <- range(fill_value, na.rm = T)
       }
-      clone_color <- get_attribute_colors(fill_value, min_x = attribute_range[1], max_x = attribute_range[2], cmap=clone_cmap)  
-      
+      clone_color <- get_attribute_colors(fill_value, min_x = fill_range[1], max_x = fill_range[2], cmap=clone_cmap)
     }
     attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
     if(!user_defined_colors){
@@ -154,7 +159,11 @@ get_clone_color <- function(n_clones, cmap="rainbow_soft"){
 get_attribute_colors <- function(x, min_x =NULL, max_x = NULL, n_color_bins = 100, cmap="viridis"){
   ### FOR TESTING ###
   # x <- clone_antigenicity
-  # root_idx <- which(clone_antigenicity==0)
+  # x <- fill_value
+  # min_x <- fill_range[1]
+  # max_x <- fill_range[2] 
+  # cmap <- clone_cmap
+  # n_color_bins <- 100
   ####
   if(is.null(min_x)){
     min_x <- min(x)
@@ -164,7 +173,8 @@ get_attribute_colors <- function(x, min_x =NULL, max_x = NULL, n_color_bins = 10
   }
   
   bin_breaks <- seq(min_x, max_x , length.out = n_color_bins)
-  bin_number <- findInterval(x, bin_breaks, rightmost.closed = F)
+  bin_number <- findInterval(x, bin_breaks, rightmost.closed = F, all.inside=T)
+  
   cmap_colors <- colormap::colormap(colormaps[cmap][[1]], nshades=n_color_bins)
   colors <- cmap_colors[bin_number]
   return(colors)
