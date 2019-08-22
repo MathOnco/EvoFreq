@@ -97,9 +97,47 @@ grid.arrange(evo_freq_p,evo_freq_labeled_p,evo_freq_labeled_p_custom, nrow=1)
 ```
 ![img](img/easy.long.image.png)
 
-## Visualization from Subclonal Reconstruction tools
+## Visualizing outputs from Subclonal Reconstruction tools
 
-EvoFreq has necessary functions for visualizing [PhyloWGS](https://github.com/morrislab/phylowgs) and [CALDER](https://github.com/morrislab/phylowgs) outputs. Similar to other tools [CloneEvol](https://github.com/hdng/clonevol) outputs are already compatible.
+EvoFreq has necessary functions for visualizing [PhyloWGS](https://github.com/morrislab/phylowgs) and [CALDER](https://github.com/raphael-group/calder) outputs. Similar to other tools, [CloneEvol](https://github.com/hdng/clonevol) outputs are already compatible.
+
+```R
+# PhyloWGS
+phylowgs_output="run_name.summ.json"
+
+# Return one or all using parsing options. Use "?parse_phylowgs" for help
+tree_data <- parse_phylowgs(json_file=phylowgs_output)
+
+#EvoFreqPlots
+pdf('./evofreqs.pdf', width=8, height=4, onefile = T)
+for (i in 1:length(f$all)){
+  clone_dynamics_df <- get_evofreq(tree_data[[i]][,c(5,length(colnames(tree_data)))], clones=tree_data[[i]]$clone, parents=tree_data[[i]]$parent, clone_cmap = "jet")
+  p <- plot_evofreq(evofreq_df)
+  print(p)
+}
+dev.off()
+
+# CALDER
+theFile <- "SA501_tree1.dot"
+theSoln <- "SA501_soln1.csv"
+calder.data <- parse_calder(theSoln, theFile)
+
+### Use the long_to_wide_size_df function to get the right data structure.
+wide_df <- long_to_wide_size_df(long_pop_sizes_df = calder.data$sizeDf,
+                                edges_df = calder.data$edges,
+                                time_col_name = "time",
+                                clone_col_name = "clone",
+                               parent_col_name = "parent",
+                                size_col_name = "size",
+                                fill_gaps_in_size = T
+)
+clones <- as.character(wide_df$clones)
+parents <- as.character(wide_df$parents)
+size_df <- wide_df$wide_size_df
+
+clone_dynamics_df <- get_evofreq(size_df, clones, parents, clone_cmap = "jet", data_type = "size", threshold=0, test_links = T, add_origin = T, interp_method = "bezier")
+plot_evofreq(clone_dynamics_df)
+```
 
 ## Features
 
