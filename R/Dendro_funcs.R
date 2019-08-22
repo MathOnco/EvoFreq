@@ -309,68 +309,90 @@ get_elbow_links <- function(dendro_df){
 #' size_df <- example.easy.wide[, time_col_idx]
 #' parents <- example.easy.wide$parent
 #' clones <- example.easy.wide$clone
-#' 
+#'
 #' tree_info <- get_evogram(size_df, parents = parents, clones = clones)
 #' tree_pos <- tree_info$dendro_pos
-#' straight_links <- tree_info$links
-#' tree_p <- plot_evogram(tree_pos, straight_links)
-#' 
-#' ### Can also plot with elbow links
-#' tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "elbow")
-#' tree_pos <- tree_info$dendro_pos
 #' elbow_links <- tree_info$links
-#' tree_elbow_p <- plot_evogram(tree_pos, elbow_links)
+#' tree_p <- plot_evogram(tree_pos, elbow_links)
+#' 
+#' ### Can also plot with straight links
+#' tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "straight")
+#' tree_pos <- tree_info$dendro_pos
+#' straight_links <- tree_info$links
+#' tree_straight_p <- plot_evogram(tree_pos, straight_links)
 #' 
 #' ### Can also set nodes to be colored by attribute
 #' data("example.easy.wide.with.attributes")
 #' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 #' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 #' attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#' attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
 #' attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
 #' attr_parents <- example.easy.wide.with.attributes$parent
 #' attr_clones <- example.easy.wide.with.attributes$clone
-#' clone_id_col <- "clone"
-#' 
-#' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' fitness <- example.easy.wide.with.attributes$fitness
+#'
+#' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 #' attribute_tree_pos <- attribute_dendro_df$dendro_pos
 #' attribute_elbow_links <- attribute_dendro_df$links
 #' attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links, scale_by_node_size = TRUE)
 #' @export
-get_evogram <- function(size_df, clones, parents, time_pt=NULL, attribute_df=NULL, attribute_val_name = NULL, clone_id_col_in_att_df="clone_id", clone_cmap='rainbow_soft', threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, attribute_val_range = NULL, link_type="elbow"){
+get_evogram <- function(size_df, clones, parents,  fill_value=NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, fill_range = NULL, link_type="elbow"){
   # ## FOR TESTING ###
-  # data("example.easy.wide.with.attributes")
   # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values#
-  # size_df <- clone_df
-  # clones <- clone_list
-  # parents <- parent_list
+  # data("example.easy.wide")
+  # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+  # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
+  # attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
+  # size_df <- example.easy.wide[, time_col_idx]
+  # parents <- example.easy.wide$parent
+  # clones <- example.easy.wide$clone
   # threshold <- 0.02
-  # attribute_df <- NULL
   # clone_cmap <- "rainbow_soft"
   # size_df <- size_df
   # time_pt <- NULL
-  # attribute_val_name <-  NULL #"fitness" #"new_antigenicity"
   # data_type <- "size"
   # scale_by_sizes_at_time <- F
   # fill_gaps_in_size <- F
   # test_links <- T
   # threshold <- 0.01
-  # attribute_val_range <- NULL
-  # link_type <- "straight"
-  # layout <- "tree"
-  # clone_id_col_in_att_df <- "clone"
+  # link_type <- "elbow"
+  # fill_value <- NULL
   # # ###
   
+  
+  if(!is.null(fill_value)){
+    attribute_val_name <- deparse(substitute(fill_value))
+    if(grepl("\\$", attribute_val_name)){
+      ### Value was passed in as a column in a dataframe
+      attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
+    }else if(grepl("\\[.*\\]", attribute_val_name)){
+      ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
+      attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
+    }
+    
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    attribute_df[attribute_val_name] <- fill_value
+  }else{
+    attribute_df <- NULL
+    attribute_val_name <- NULL
+  }
+  
+  if(!is.null(attribute_val_name)){
+    attribute_vals <- attribute_df[,attribute_val_name]
+    if(is.null(fill_range)){
+      fill_range <- range(attribute_vals, na.rm = T)
+    }
+  }
+  
   ### Filter info ###
-  to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = time_pt, attribute_df = attribute_df, clone_id_col_in_att_df=clone_id_col_in_att_df, threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
+  to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = time_pt, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
   ### Get dendrogram positions and attributes ###
   dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
   if(!is.null(attribute_df)){
     attribute_df <- to_plot_df$attributes
   }
   
-  dendro_pos <- update_colors(evo_freq_df = dendro_pos, attribute_df = attribute_df, attribute_val_name = attribute_val_name, clone_id_col_in_att_df=clone_id_col_in_att_df, clone_cmap = clone_cmap, attribute_range = attribute_val_range)
-  
+  dendro_pos <- update_colors(evo_freq_df = dendro_pos, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name)
   
   ### Add line segments: Elbow or diagonal ###
   if(link_type == "straight"){
@@ -384,8 +406,8 @@ get_evogram <- function(size_df, clones, parents, time_pt=NULL, attribute_df=NUL
 
 
 #'@title plot_evogram
-#'
 #'Plot dendrogram
+#'@inheritParams plot_evofreq
 #'@param dendro_pos_df Position of nodes returned by \code{\link{get_evogram}} 
 #'@param link_df Position of edges returned by \code{\link{get_evogram}} 
 #'@param node_size Determines the size of nodes if \code{scale_by_node_size} is FALSE
@@ -405,43 +427,42 @@ get_evogram <- function(size_df, clones, parents, time_pt=NULL, attribute_df=NUL
 #' 
 #' tree_info <- get_evogram(size_df, parents = parents, clones = clones)
 #' tree_pos <- tree_info$dendro_pos
-#' straight_links <- tree_info$links
-#' tree_p <- plot_evogram(tree_pos, straight_links)
+#' elbow_links <- tree_info$links
+#' tree_p <- plot_evogram(tree_pos, elbow_links)
 #' 
 #' ### Can also plot with elbow links
-#' tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "elbow")
+#' tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "straight")
 #' tree_pos <- tree_info$dendro_pos
-#' elbow_links <- tree_info$links
-#' tree_elbow_p <- plot_evogram(tree_pos, elbow_links)
-#'
-#' ### Default is to show hierarchy level, but y position can also reflect time of clonal origin
-#' elbow_origin_p <- plot_evogram(tree_pos, elbow_links, depth = "origin")
+#' straight_links <- tree_info$links
+#' tree_straight_p <- plot_evogram(tree_pos, straight_links)
+#' 
+#' ### Default is for y to show time of clonal origin , all leaves can be at the highest level
 #' elbow_bottom_p <- plot_evogram(tree_pos, elbow_links, depth = "bottom")
 #' ### Can view left to right by changing orientation argument
 #' lr_tree_elbow_p <- plot_evogram(tree_pos, elbow_links, orientation = "lr")
-#' ### Can color using attributes
+#' #' ### Can color using attributes
 #' data("example.easy.wide.with.attributes")
 #' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 #' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 #' attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#' attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
 #' attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
 #' attr_parents <- example.easy.wide.with.attributes$parent
 #' attr_clones <- example.easy.wide.with.attributes$clone
-#' clone_id_col <- "clone"
-#' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
-#' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' fitness <- example.easy.wide.with.attributes$fitness
+#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 #' attribute_tree_pos <- attribute_dendro_df$dendro_pos
 #' attribute_elbow_links <- attribute_dendro_df$links
 #' attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links)
 #' @export
-plot_evogram <- function(dendro_pos_df, link_df, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
+plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
   ### FOR TESTING ### 
-  # dendro_pos_df <- tree_pos
-  # link_df <- straight_links
+  # dendro_pos_df <- attribute_dendro_df$dendro_pos
+  # link_df <- attribute_dendro_df$links
   # scale_by_node_size = T
   # orientation="lr" #= top_down, "lr" left right
   # depth <- "origin"
+  # fill_range <- NULL
   ###
   
   link_df <- link_df[complete.cases(link_df$x),]
@@ -466,10 +487,9 @@ plot_evogram <- function(dendro_pos_df, link_df, node_size=5, scale_by_node_size
   if(is.na(color_attribute_name)){
     color_attribute_name <- "plot_color"
   }else{
-    color_df <-  dendro_pos_df[duplicated(dendro_pos_df$plot_color)==F, ]
-    color_df <- color_df[order(color_df[color_attribute_name]), ]
-    colorbar_colors <- color_df$plot_color
-    
+    if(is.null(fill_range)){
+      fill_range <- range(dendro_pos_df[, color_attribute_name], na.rm = T)  
+    }
   }
   
   if(link_type == "straight"){
@@ -486,7 +506,9 @@ plot_evogram <- function(dendro_pos_df, link_df, node_size=5, scale_by_node_size
   if(color_attribute_name=="plot_color"){
     p <- p + ggplot2::scale_color_identity()
   }else{
-    p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    colormap_name <- unique(dendro_pos_df$cmap)
+    p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
+    # p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
   }
   
   

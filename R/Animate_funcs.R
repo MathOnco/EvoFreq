@@ -9,39 +9,38 @@
 #' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 #' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 #' attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#' attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
 #' size_df <- example.easy.wide.with.attributes[, time_col_idx]
 #' parents <- example.easy.wide.with.attributes$parent
 #' clones <- example.easy.wide.with.attributes$clone
-#' dendro_movie_info <- animate_evogram(size_df, clones = clones, parents = parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_cmap = "magma", clone_id_col_in_att_df = "clone")
-#' # dendro_movie_info <- animate_evogram(size_df, clones = clones, parents = parents)
-#' pos_df <- dendro_movie_info$dendro_pos_df
+#' fitness <- example.easy.wide.with.attributes$fitness
+#' dendro_movie_info <- animate_evogram(size_df, clones = clones, parents = parents, fill_value = fitness)
 #' dendro_movie_plot <- dendro_movie_info$animation_plot
-#' #'
+#'
 #'### Add gganimate object to dendro_movie_plot to finish animation
 #' \donttest{
 #' library(gganimate)
 #' movie_p <- dendro_movie_plot +
-#' transition_time(time) +
-#' ease_aes() +
-#' exit_shrink() +
-#' ggtitle('Time {frame_time}')
+#'   transition_time(time) +
+#'   ease_aes() +
+#'   exit_shrink() +
+#'   ggtitle('Time {frame_time}')
 #' 
 #' print(movie_p)
 #'}
 #'@export
-animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, attribute_val_name = NULL, clone_id_col_in_att_df = "clone_id", clone_cmap='rainbow_soft', threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, attribute_val_range = NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
+animate_evogram <- function(size_df, clones, parents, fill_value=NULL, time_pts=NULL, attribute_df=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, fill_range = NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
   # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
-  ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+  # # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
   # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
   # attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
   # attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
   # size_df <- example.easy.wide.with.attributes[, time_col_idx]
   # parents <- example.easy.wide.with.attributes$parent
   # clones <- example.easy.wide.with.attributes$clone
+  # fill_value <- example.easy.wide.with.attributes$fitness
   #
-  # clone_cmap <- "rainbow_soft"
+  # clone_cmap <- NULL
   # size_df <- size_df
   # threshold <- 0.01
   # clones <- clones
@@ -64,6 +63,31 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   # clone_id_col_in_att_df <- "clone"
   #####
   
+  if(!is.null(fill_value)){
+    attribute_val_name <- deparse(substitute(fill_value))
+    if(grepl("\\$", attribute_val_name)){
+      ### Value was passed in as a column in a dataframe
+      attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
+    }else if(grepl("\\[.*\\]", attribute_val_name)){
+      ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
+      attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
+    }
+    
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    attribute_df[attribute_val_name] <- fill_value
+  }else{
+    attribute_df <- NULL
+    attribute_val_name <- NULL
+  }
+  
+  if(!is.null(attribute_val_name)){
+    attribute_vals <- attribute_df[,attribute_val_name]
+    if(is.null(fill_range)){
+      fill_range <- range(attribute_vals, na.rm = T)
+    }
+  }
+  
+  
   if(is.null(time_pts)){
     time_pts <- colnames(size_df)
   }
@@ -77,7 +101,8 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
     utils::setTxtProgressBar(pb, time_idx)
     tp <- time_pts[time_idx]
     sink("/dev/null") ### Suppress output
-    to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df, clone_id_col_in_att_df=clone_id_col_in_att_df, threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
+    # to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df, clone_id_col_in_att_df=clone_id_col_in_att_df, threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
+    to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
     sink()
     time_dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
     time_dendro_pos <- get_straight_links(time_dendro_pos)
@@ -116,11 +141,15 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   d_pos_df <- do.call(rbind, all_time_df_list)
   d_pos_df <- d_pos_df[order(d_pos_df$time), ]
   
-  if(is.null(attribute_val_name)){
-    attribute_df <- NULL 
-  }
+  # if(is.null(attribute_val_name)){
+  #   attribute_df <- NULL 
+  # }
+  # 
+  # d_pos_df <- update_colors(evo_freq_df = d_pos_df, attribute_df = attribute_df, attribute_val_name = attribute_val_name, clone_id_col_in_att_df=clone_id_col_in_att_df, clone_cmap = clone_cmap, attribute_range = attribute_val_range)
+  length(fill_value)
+  d_pos_df <- update_colors(evo_freq_df = d_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name)
   
-  d_pos_df <- update_colors(evo_freq_df = d_pos_df, attribute_df = attribute_df, attribute_val_name = attribute_val_name, clone_id_col_in_att_df=clone_id_col_in_att_df, clone_cmap = clone_cmap, attribute_range = attribute_val_range)
+  
   
   if(depth == "origin"){
     y_name <- "origin_y"
@@ -138,14 +167,13 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   if(is.na(color_attribute_name)){
     color_attribute_name <- "plot_color"
   }else{
-    color_df <-  d_pos_df[duplicated(d_pos_df$plot_color)==F, ]
-    color_df <- color_df[order(color_df[color_attribute_name]), ]
-    colorbar_colors <- color_df$plot_color
-    
+    if(is.null(fill_range)){
+      fill_range <- range(d_pos_df[, color_attribute_name], na.rm = T)  
+    }
   }
   
   
-  p <- ggplot2::ggplot(d_pos_df, aes_string(x="x", y=y_name, color=color_attribute_name, group="clone_id", xend="end_x", yend=end_y_name, size="freq")) +
+  p <- ggplot2::ggplot(d_pos_df, ggplot2::aes_string(x="x", y=y_name, color=color_attribute_name, group="clone_id", xend="end_x", yend=end_y_name, size="freq")) +
     ggplot2::geom_segment(color="black", size=1, na.rm=T)
   
   if(scale_by_node_size){
@@ -162,20 +190,15 @@ animate_evogram <- function(size_df, clones, parents, time_pts=NULL, attribute_d
   if(color_attribute_name=="plot_color"){
     p <- p + ggplot2::scale_color_identity()
   }else{
-    p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    # p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    colormap_name <- unique(d_pos_df$cmap)
+    p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
   }
   
   p <- p + ggplot2::theme_void()
   
-  movie_p <- p +
-    transition_time(time) +
-    ease_aes() +
-    exit_shrink() +
-    ggtitle('Time {frame_time}')
-  
   return(list("dendro_pos_df"=d_pos_df, "animation_plot"=p))
 }
-
 
 add_links <- function(d_pos_list){
   ###FOR TESTING ###
