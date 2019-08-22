@@ -97,6 +97,10 @@ grid.arrange(evo_freq_p,evo_freq_labeled_p,evo_freq_labeled_p_custom, nrow=1)
 ```
 ![img](img/easy.long.image.png)
 
+## Visualization from Subclonal Reconstruction tools
+
+EvoFreq has necessary functions for visualizing [PhyloWGS](https://github.com/morrislab/phylowgs) and [CALDER](https://github.com/morrislab/phylowgs) outputs. Similar to other tools [CloneEvol](https://github.com/hdng/clonevol) outputs are already compatible.
+
 ## Features
 
 One of the most powerful features is the endless additions that can be added to each plot. Any ggplot2 function can be added to the frequency dynamics plots.
