@@ -1,4 +1,3 @@
-
 #'@title update_colors
 #'
 #'Update the colors of clones in the frequency dynamics dataframe or dendrogram plot dataframe
@@ -48,61 +47,83 @@
 #'tree_info_custom_color <- update_colors(evo_freq_df = attribute_tree_pos, attribute_df = attribute_df, attribute_val_name = "color", clone_id_col_in_att_df=clone_id_col)
 #'tree_p_custom_color <- plot_dendro(tree_info_custom_color, attribute_links)
 #'@export
-update_colors <- function(evo_freq_df, attribute_df=NULL, attribute_val_name=NULL, clone_id_col_in_att_df="clone_id", clone_cmap="rainbow_soft", attribute_range=NULL){
+update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL, attribute_range=NULL, attribute_val_name=NULL){
   ### FOR TESTING ###
-  # evo_freq_df <- dendro_pos
-  # attribute_df <- example.easy.long.edges
-  # attribute_val_name <- "fitness"
+  # evo_freq_df <- plot_pos_df
   # attribute_range <- NULL
-  # clone_id_col_in_att_df="clone"
-  # clone_cmap <- "viridis"
-  
-  ###
-  if(is.null(attribute_df)){
-    # attribute_val_name <- NA
-    unique_clone_idx <- which(duplicated(evo_freq_df$clone_id)==F)
-    unc <-evo_freq_df$clone_id[unique_clone_idx]
-    
-    if(clone_cmap %in% names(colormaps)){
-      clone_color <- get_clone_color(length(unc), clone_cmap)
-    }else{
-      clone_color <- clone_cmap
-    }
-    attribute_df <- data.frame("clone_id"=unc, "plot_color"=clone_color)
-  }else{
-    
-    if(!"clone_id" %in% colnames(attribute_df)){
-      clone_col_idx <- which(colnames(attribute_df)==clone_id_col_in_att_df)
-      if(length(clone_col_idx) == 0){
-        print("do not know column in attribute_df that contains clone IDs. Please check the clone_id_col_in_att_df argument or set the clone ID column in attribute_df to be 'clone_id'")
+  # clone_cmap <- NULL #"viridis"
+  # fill_value <- clone_attribute_colors
+  # attribute_range <- fill_range
+  ####
+
+  if(!is.null(fill_value)){
+    ### Value is an attribute to be colored by
+    if(is.null(attribute_val_name)){
+      ### Use name of variable passed to fill_value to 
+      attribute_val_name <- deparse(substitute(fill_value))
+      if(grepl("\\$", attribute_val_name)){
+        ### Value was passed in  using $ to get the column, e.g. df$attribute_val_name
+        attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
+      }else if(grepl("\\[.*\\]", attribute_val_name)){
+        ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
+        attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
       }
-      colnames(attribute_df)[clone_col_idx] <- "clone_id"
     }
 
-    # attribute_df$efp_color_attribute <- attribute_val_name
-    attribute_df <- attribute_df[attribute_df$clone_id %in% evo_freq_df$clone_id, ]
-    if(!is.null(attribute_val_name)){
-      attr_vals <- attribute_df[, attribute_val_name]
-      if(is.factor(attr_vals)){
-        attr_vals <- as.character(attr_vals)
-      }
-      all_hex <- all(sapply(attr_vals, function(x){substr(x, 1, 1)=="#" & nchar(x)> 6 & nchar(x) <=9}))
+
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    attribute_df[attribute_val_name] <- fill_value
+
+    r_colors <- colors()
+    str_fill_value <- as.character(fill_value)
+    all_hex <- all(sapply(str_fill_value, function(x){startsWith(x, "#") & nchar(x)> 6 & nchar(x) <=9}))
+    all_rgb <- all(sapply(str_fill_value, function(x){length(strsplit(x, ",")[[1]])==3}))
+    all_named <- all(sapply(str_fill_value, function(x){x %in% r_colors}))
+    
+    user_defined_colors <- any(all_hex, all_rgb, all_named)
+    if(user_defined_colors){
+      attribute_val_name <- NULL
+      clone_cmap <- "custom"
       if(all_hex){
-        attribute_df$plot_color <- attr_vals
-        attribute_val_name <- "plot_color"
-        # attribute_df$efp_color_attribute <- NA
-      }else{
-        if(is.null(attribute_range)){
-          attribute_range <- range(attr_vals, na.rm = T)
-        }
-        attribute_df$plot_color <- get_attribute_colors(attr_vals, min_x = attribute_range[1], max_x = attribute_range[2], cmap=clone_cmap)  
+        clone_color <- fill_value
+      }else if(all_rgb){
+        clone_color <- rgb2hex(fill_value)
+      }else if(all_named){
+        clone_color <- named2hex(fill_value)
       }
+      
+    }else{
+      ### If values are not hex or cannot be converted to hex, then assume user wants colors generated using a colormap
+      
+      if(is.null(clone_cmap)){
+        clone_cmap <- 'viridis'      
+      }
+      if(is.null(attribute_range)){
+        attribute_range <- range(fill_value, na.rm = T)
+      }
+      clone_color <- get_attribute_colors(fill_value, min_x = attribute_range[1], max_x = attribute_range[2], cmap=clone_cmap)  
+      
     }
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
+    if(!user_defined_colors){
+      attribute_df[attribute_val_name] <- fill_value
+    }
+    
+  }else{
+    ### Assign unique color for each clone
+    attribute_val_name <- NULL
+    if(is.null(clone_cmap)){
+      clone_cmap <- 'rainbow_soft'      
+    }
+    clone_color <- get_clone_color(length(clones), clone_cmap)
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
   }
-  
-  evo_freq_df <- evo_freq_df[! colnames(evo_freq_df) %in% c("efp_color_attribute", "plot_color")] ### remove previous color
-  updated_attribute_df <- merge(evo_freq_df, attribute_df, all.x = T, all.y = F, by="clone_id")
 
+  attribute_df$cmap <- clone_cmap
+  
+  evo_freq_df <- evo_freq_df[! colnames(evo_freq_df) %in% c("efp_color_attribute", "plot_color", "cmap")] ### remove previous color and attribute names
+  updated_attribute_df <- merge(evo_freq_df, attribute_df, all.x = T, all.y = F, by="clone_id")
+  
   ### If any duplicated columns, keep those that were originally in X
   dup_x_col_idx <- grep("\\.x", colnames(updated_attribute_df))
   if(length(dup_x_col_idx)>0){
@@ -118,6 +139,7 @@ update_colors <- function(evo_freq_df, attribute_df=NULL, attribute_val_name=NUL
   }
   updated_attribute_df$efp_color_attribute <- attribute_val_name
   updated_attribute_df$plot_color <- as.character(updated_attribute_df$plot_color)
+  updated_attribute_df$cmap <- clone_cmap
   return(updated_attribute_df)
 }
 
@@ -153,3 +175,38 @@ scale_value <- function(x, in_min, in_max, out_min, out_max){
   return(new_x)
 }
 
+rgb2hex <- function(cvals){
+  ### FOR TESTING ###
+  # cvals <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+  ### FOR TESTING ###
+  
+  fill_mat <- t(sapply(cvals, function(x){as.numeric(strsplit(x, ",")[[1]])}))
+  max_fill_val <- max(fill_mat)
+  if(max_fill_val <= 1){
+    max_fill_val <- 1
+  }else{
+    max_fill_val <- 255
+  }
+  
+  hex_colors <- sapply(seq(nrow(fill_mat)), function(x){rgb(fill_mat[x, 1], fill_mat[x, 3], fill_mat[x, 3], maxColorValue=max_fill_val, alpha=max_fill_val)})
+  return(hex_colors)
+}
+
+named2hex <- function(cvals){
+  ### FOR TESTING ###
+  # cvals <- sample(colors(), 10)
+  ####
+  
+  fill_mat <- t(sapply(cvals, function(x){as.numeric(col2rgb(x))})) ### Each column is a color
+  max_fill_val <- max(fill_mat)
+  if(max_fill_val <= 1){
+    max_fill_val <- 1
+  }else{
+    max_fill_val <- 255
+  }
+  
+  hex_colors <- sapply(seq(nrow(fill_mat)), function(x){rgb(fill_mat[x, 1], fill_mat[x, 3], fill_mat[x, 3], maxColorValue=max_fill_val, alpha=max_fill_val)})
+  
+  return(hex_colors)
+  
+}
