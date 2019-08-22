@@ -3,16 +3,17 @@
 \name{plot_evogram}
 \alias{plot_evogram}
 \title{plot_evogram
-
 Plot dendrogram}
 \usage{
-plot_evogram(dendro_pos_df, link_df, node_size = 5,
+plot_evogram(dendro_pos_df, link_df, fill_range = NULL, node_size = 5,
   scale_by_node_size = T, orientation = "td", depth = "origin")
 }
 \arguments{
 \item{dendro_pos_df}{Position of nodes returned by \code{\link{get_evogram}}}
 
 \item{link_df}{Position of edges returned by \code{\link{get_evogram}}}
+
+\item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
 
 \item{node_size}{Determines the size of nodes if \code{scale_by_node_size} is FALSE}
 
@@ -27,7 +28,6 @@ a ggplot object to plot the tree
 }
 \description{
 plot_evogram
-
 Plot dendrogram
 }
 \examples{
@@ -42,32 +42,30 @@ clones <- example.easy.wide$clone
 
 tree_info <- get_evogram(size_df, parents = parents, clones = clones)
 tree_pos <- tree_info$dendro_pos
-straight_links <- tree_info$links
-tree_p <- plot_evogram(tree_pos, straight_links)
+elbow_links <- tree_info$links
+tree_p <- plot_evogram(tree_pos, elbow_links)
 
 ### Can also plot with elbow links
-tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "elbow")
+tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "straight")
 tree_pos <- tree_info$dendro_pos
-elbow_links <- tree_info$links
-tree_elbow_p <- plot_evogram(tree_pos, elbow_links)
+straight_links <- tree_info$links
+tree_straight_p <- plot_evogram(tree_pos, straight_links)
 
-### Default is to show hierarchy level, but y position can also reflect time of clonal origin
-elbow_origin_p <- plot_evogram(tree_pos, elbow_links, depth = "origin")
+### Default is for y to show time of clonal origin , all leaves can be at the highest level
 elbow_bottom_p <- plot_evogram(tree_pos, elbow_links, depth = "bottom")
 ### Can view left to right by changing orientation argument
 lr_tree_elbow_p <- plot_evogram(tree_pos, elbow_links, orientation = "lr")
-### Can color using attributes
+#' ### Can color using attributes
 data("example.easy.wide.with.attributes")
 ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
 attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
 attr_parents <- example.easy.wide.with.attributes$parent
 attr_clones <- example.easy.wide.with.attributes$clone
-clone_id_col <- "clone"
-### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
-attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+fitness <- example.easy.wide.with.attributes$fitness
+#' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 attribute_tree_pos <- attribute_dendro_df$dendro_pos
 attribute_elbow_links <- attribute_dendro_df$links
 attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links)

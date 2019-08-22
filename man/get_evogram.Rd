@@ -6,11 +6,10 @@
 
 Collect information to plot dendrogram}
 \usage{
-get_evogram(size_df, clones, parents, time_pt = NULL,
-  attribute_df = NULL, attribute_val_name = NULL,
-  clone_id_col_in_att_df = "clone_id", clone_cmap = "rainbow_soft",
+get_evogram(size_df, clones, parents, fill_value = NULL,
+  fill_range = NULL, time_pt = NULL, clone_cmap = NULL,
   threshold = 0.01, data_type = "size", fill_gaps_in_size = F,
-  test_links = T, attribute_val_range = NULL, link_type = "elbow")
+  test_links = T, link_type = "elbow")
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
@@ -19,13 +18,11 @@ get_evogram(size_df, clones, parents, time_pt = NULL,
 
 \item{parents}{Array containing the ids of the parent of each clone in the \code{clones} array.}
 
+\item{fill_value}{Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}}
+
+\item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
+
 \item{time_pt}{Timepoint with which the dendrgram should be drawn}
-
-\item{attribute_df}{Optional dataframe containing attributes for each clone that can be used to determine the color of each clone in the plot. This can include a column of custom colors to use \code{attribute_val_name}.}
-
-\item{attribute_val_name}{String defining which column in \code{attribute_df} will be used to color each clone. If attribute column values are a hex code in this column, these colors will be used instead of \code{clone_cmap}.}
-
-\item{clone_id_col_in_att_df}{Name of the column in attribute_df that contains the clone IDs}
 
 \item{clone_cmap}{Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.}
 
@@ -36,8 +33,6 @@ get_evogram(size_df, clones, parents, time_pt = NULL,
 \item{fill_gaps_in_size}{Boolean defining whether or not missing sizes should be filled in}
 
 \item{test_links}{Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion.}
-
-\item{attribute_val_range}{Range of values for the attribute to color by. If NULL, then range is determined from the attribute data}
 
 \item{link_type}{Defines the shape of the edges berween nodes: "straight" draws straight lines between parents and childrend, while "elbow" draws a step from parent to child}
 }
@@ -60,27 +55,26 @@ clones <- example.easy.wide$clone
 
 tree_info <- get_evogram(size_df, parents = parents, clones = clones)
 tree_pos <- tree_info$dendro_pos
-straight_links <- tree_info$links
-tree_p <- plot_evogram(tree_pos, straight_links)
-
-### Can also plot with elbow links
-tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "elbow")
-tree_pos <- tree_info$dendro_pos
 elbow_links <- tree_info$links
-tree_elbow_p <- plot_evogram(tree_pos, elbow_links)
+tree_p <- plot_evogram(tree_pos, elbow_links)
+
+### Can also plot with straight links
+tree_info <- get_evogram(size_df, parents = parents, clones = clones, link_type = "straight")
+tree_pos <- tree_info$dendro_pos
+straight_links <- tree_info$links
+tree_straight_p <- plot_evogram(tree_pos, straight_links)
 
 ### Can also set nodes to be colored by attribute
 data("example.easy.wide.with.attributes")
 ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
 attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
 attr_parents <- example.easy.wide.with.attributes$parent
 attr_clones <- example.easy.wide.with.attributes$clone
-clone_id_col <- "clone"
+fitness <- example.easy.wide.with.attributes$fitness
 
-attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 attribute_tree_pos <- attribute_dendro_df$dendro_pos
 attribute_elbow_links <- attribute_dendro_df$links
 attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links, scale_by_node_size = TRUE)

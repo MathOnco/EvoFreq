@@ -6,12 +6,11 @@
 
 View changes in the dendrogram over time. Has most of the same options as \code{\link{plot_evogram}}, but does not have option to set link type}
 \usage{
-animate_evogram(size_df, clones, parents, time_pts = NULL,
-  attribute_df = NULL, attribute_val_name = NULL,
-  clone_id_col_in_att_df = "clone_id", clone_cmap = "rainbow_soft",
+animate_evogram(size_df, clones, parents, fill_value = NULL,
+  fill_range = NULL, time_pts = NULL, clone_cmap = NULL,
   threshold = 0.01, data_type = "size", fill_gaps_in_size = F,
-  test_links = T, attribute_val_range = NULL, node_size = 5,
-  scale_by_node_size = T, orientation = "td", depth = "level")
+  test_links = T, node_size = 5, scale_by_node_size = T,
+  orientation = "td", depth = "origin")
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
@@ -20,13 +19,11 @@ animate_evogram(size_df, clones, parents, time_pts = NULL,
 
 \item{parents}{Array containing the ids of the parent of each clone in the \code{clones} array.}
 
+\item{fill_value}{Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}}
+
+\item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
+
 \item{time_pts}{Array containing the name of the timepoints. If NULL, then the name of timepoints will be a sequence from 1 to the number of columns in \code{size_df}.}
-
-\item{attribute_df}{Optional dataframe containing attributes for each clone that can be used to determine the color of each clone in the plot. This can include a column of custom colors to use \code{attribute_val_name}.}
-
-\item{attribute_val_name}{String defining which column in \code{attribute_df} will be used to color each clone. If attribute column values are a hex code in this column, these colors will be used instead of \code{clone_cmap}.}
-
-\item{clone_id_col_in_att_df}{Name of the column in attribute_df that contains the clone IDs}
 
 \item{clone_cmap}{Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.}
 
@@ -37,8 +34,6 @@ animate_evogram(size_df, clones, parents, time_pts = NULL,
 \item{fill_gaps_in_size}{Boolean defining whether or not missing sizes should be filled in}
 
 \item{test_links}{Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion.}
-
-\item{attribute_val_range}{Range of values for the attribute to color by. If NULL, then range is determined from the attribute data}
 
 \item{node_size}{Determines the size of nodes if \code{scale_by_node_size} is FALSE}
 
@@ -61,23 +56,21 @@ data("example.easy.wide.with.attributes")
 ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
 size_df <- example.easy.wide.with.attributes[, time_col_idx]
 parents <- example.easy.wide.with.attributes$parent
 clones <- example.easy.wide.with.attributes$clone
-dendro_movie_info <- animate_evogram(size_df, clones = clones, parents = parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_cmap = "magma", clone_id_col_in_att_df = "clone")
-# dendro_movie_info <- animate_evogram(size_df, clones = clones, parents = parents)
-pos_df <- dendro_movie_info$dendro_pos_df
+fitness <- example.easy.wide.with.attributes$fitness
+dendro_movie_info <- animate_evogram(size_df, clones = clones, parents = parents, fill_value = fitness)
 dendro_movie_plot <- dendro_movie_info$animation_plot
-#'
+
 ### Add gganimate object to dendro_movie_plot to finish animation
 \donttest{
 library(gganimate)
 movie_p <- dendro_movie_plot +
-transition_time(time) +
-ease_aes() +
-exit_shrink() +
-ggtitle('Time {frame_time}')
+  transition_time(time) +
+  ease_aes() +
+  exit_shrink() +
+  ggtitle('Time {frame_time}')
 
 print(movie_p)
 }

@@ -6,25 +6,70 @@
 
 Update the colors of clones in the frequency dynamics dataframe or dendrogram plot dataframe}
 \usage{
-update_colors(evo_freq_df, attribute_df = NULL,
-  attribute_val_name = NULL, clone_id_col_in_att_df = "clone_id",
-  clone_cmap = "rainbow_soft", attribute_range = NULL)
+update_colors(evo_freq_df, clones, fill_value = NULL,
+  clone_cmap = NULL, fill_range = NULL, attribute_val_name = NULL)
 }
 \arguments{
 \item{evo_freq_df}{Dataframe returned by \code{\link{get_evofreq}} or \code{\link{get_evogram}} , which contains the information to plot the frequency dynamics}
 
-\item{attribute_df}{Optional dataframe containing attributes for each clone that can be used to determine the color of each clone in the plot. This can include a column of custom colors to use \code{attribute_val_name}.}
+\item{clones}{Array containing the clone ids. The index of each clone must correspond to the same index of the row in \code{size_df} that contains the sizes of that clone over time}
 
-\item{attribute_val_name}{String defining which column in \code{attribute_df} will be used to color each clone. If attribute column values are a hex code in this column, these colors will be used instead of \code{clone_cmap}.}
-
-\item{clone_id_col_in_att_df}{Name of the column in attribute_df that contains the clone IDs}
+\item{fill_value}{Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}}
 
 \item{clone_cmap}{String defining which colormap should be used to color the clones (nodes) if no attributes to color by. For a list of available colormaps, see \code{\link[colormap]{colormaps}}. If color not in  \code{\link[colormap]{colormaps}}, it is assumed all colors should be the same}
 
-\item{attribute_range}{Range of values for the attribute to color by. If NULL, then range is determined from the attribute data}
+\item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
+
+\item{attribute_val_name}{String defining the name of the attribute used for coloring. If NULL, the default, the name will be inferred from the \code{fill_value} argument.}
 }
 \description{
 update_colors
 
 Update the colors of clones in the frequency dynamics dataframe or dendrogram plot dataframe
+}
+\examples{
+data("example.easy.wide")
+### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
+size_df <- example.easy.wide[, time_col_idx]
+parents <- example.easy.wide$parents
+clones <- example.easy.wide$clones
+### Setting of colors can be done when getting the freq_frame, or by updating the color later using \\code{\\link{update_colors}}. Available colormaps are those found in \\code{\\link[colormap]{colormaps}}
+### Default colormap is rainbow_soft, but this can be changed using the \\code{clone_cmap} argument. 
+freq_frame <- get_evofreq(size_df, clones, parents)
+evo_p <- plot_evofreq(freq_frame)
+
+### Can color each clone by an attribute by providing a \\code{fill_value}. Default colormap is viridis, but this can be changed using the \\code{clone_cmap} argument. There is also the option to set the color range using the \\code{fill_range} argument
+fitness <- runif(length(clones),0, 100)
+fitness_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = fitness, fill_range= c(0, 100))
+fitness_evo_p <- plot_evofreq(fitness_freq_frame, fill_range = c(0, 100))
+
+### The user can also provide custom colors for each clone, which will need to be passed into the \\code{fill_value} argument
+### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
+rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+rgb_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = rgb_clone_colors)
+rgb_evo_p <- plot_evofreq(rgb_freq_frame)
+
+### Custom colors can also be any of the named colors in R. A list of the colors can be found with \\code{colors()}
+named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
+named_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = named_clone_colors)
+named_evo_p <- plot_evofreq(named_freq_frame)
+
+### Custom colors can also be specified using hexcode
+hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+hex_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = hex_clone_colors)
+hex_evo_p <- plot_evofreq(hex_freq_frame)
+
+### Method can also be used to update node colors of the dendrograms
+dendro_df <- get_evogram(size_df, clones, parents)
+tree_pos <- dendro_df$dendro_pos
+tree_links <- dendro_df$links
+tree_p <- plot_evogram(tree_pos, tree_links)
+
+### Color node by fitness
+tree_pos_fitness_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = fitness)
+tree_p_fitness <- plot_evogram(tree_pos_fitness_color, tree_links)
+#'### Color node using custom colors in hexcode format
+tree_info_custom_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = hex_clone_colors)
+tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 }

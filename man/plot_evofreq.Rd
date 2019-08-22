@@ -5,7 +5,8 @@
 \title{\code{plot_evofreq} Plots the frequency dynamics using ggplot. Can also use info to create animations}
 \usage{
 plot_evofreq(freq_frame, n_time_pts = NULL, start_time = NULL,
-  end_time = NULL, bw = 0.05, bc = "grey75", show_axes = T)
+  end_time = NULL, bw = 0.05, bc = "grey75", show_axes = T,
+  fill_range = NULL)
 }
 \arguments{
 \item{freq_frame}{Proper dataframe returned by \code{\link{get_evofreq}}}
@@ -21,10 +22,63 @@ plot_evofreq(freq_frame, n_time_pts = NULL, start_time = NULL,
 \item{bc}{color of lines surrounding polygons}
 
 \item{show_axes}{Whether to display axes}
+
+\item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
 }
 \value{
 ggplot of the frequency dynamics
 }
 \description{
 \code{plot_evofreq} Plots the frequency dynamics using ggplot. Can also use info to create animations
+}
+\examples{
+
+data("example.easy.wide.with.attributes")
+### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
+attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
+size_df <- example.easy.wide.with.attributes[, time_col_idx]
+parents <- example.easy.wide.with.attributes$parent
+clones <- example.easy.wide.with.attributes$clone
+fitness <- example.easy.wide.with.attributes$fitness
+
+
+### Setting of colors can be done when getting the freq_frame, or by updating the color later using \\code{\\link{update_colors}}. Available colormaps are those found in \\code{\\link[colormap]{colormaps}}
+### Default colormap is rainbow_soft, but this can be changed using the \\code{clone_cmap} argument. 
+freq_frame <- get_evofreq(size_df, clones, parents)
+evo_p <- plot_evofreq(freq_frame)
+
+### Can color each clone by an attribute by providing a \\code{fill_value}. Default colormap is viridis, but this can be changed using the \\code{clone_cmap} argument
+fitness <- runif(length(clones))
+fitness_freq_frame <- get_evofreq(size_df, clones, parents, fill_value = fitness)
+fitness_evo_p <- plot_evofreq(fitness_freq_frame)
+
+### The user can also provide custom colors for each clone, which will need to be passed into the \\code{fill_value} argument
+### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
+rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+rgb_freq_frame <- get_evofreq(size_df, clones, parents, rgb_clone_colors)
+rgb_evo_p <- plot_evofreq(rgb_freq_frame)
+
+### Custom colors can also be any of the named colors in R. A list of the colors can be found with \\code{colors()}
+named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
+named_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = named_clone_colors)
+named_evo_p <- plot_evofreq(named_freq_frame)
+
+### Custom colors can also be specified using hexcode
+hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+hex_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = hex_clone_colors)
+hex_evo_p <- plot_evofreq(hex_freq_frame)
+
+### Can revert back to original colors
+freq_frame_default_color <- update_colors(fitness_freq_frame, clones=clones)
+default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
+### Can add gganimate objects to evo_p_by_size to create the animation
+
+\donttest{
+library(gganimate)
+movie_p <- fitness_evo_p +
+   transition_reveal(x) +
+    view_follow()
+print(movie_p)
+}
 }

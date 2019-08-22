@@ -28,7 +28,7 @@
 #' print(movie_p)
 #'}
 #'@export
-animate_evogram <- function(size_df, clones, parents, fill_value=NULL, time_pts=NULL, attribute_df=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, fill_range = NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
+animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
   # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
   # # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values

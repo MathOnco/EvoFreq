@@ -1,261 +1,5 @@
 #'@import colormap ggplot2 dplyr bezier
 
-filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6){
-  # data("example.easy.wide.with.attributes")
-  # ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-  # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-  # attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-  # attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
-  # size_df <- example.easy.wide.with.attributes[, time_col_idx]
-  # parents <- example.easy.wide.with.attributes$parent
-  # clones <- example.easy.wide.with.attributes$clone
-  # 
-  # clone_cmap <- "rainbow_soft"
-  # # size_df <- mut_freq
-  # threshold <- 0.0
-  # # clones <- mut_df$clone
-  # # parents <- mut_df$parent
-  # time_pts <- NULL
-  # attribute_val_name <- "fitness" #"new_antigenicity"
-  # attribute_df <- attribute_df
-  # data_type <- "size"
-  # data_type <- "size"
-  # scale_by_sizes_at_time <- F
-  # interpolation_steps <- 10
-  # fill_gaps_in_size <- F
-  # test_links <- T
-  # threshold <- 0.01
-  # fill_range <- NULL
-  # add_origin <- T
-  # tm_frac <- 0.6
-  #####
-  
-  
-  ### Possible that column names are numbers, but timepoints are unequally spaced. Only change if cannot be converted to numeric
-  og_colnames <- colnames(size_df)
-  if(suppressWarnings(all(is.na(as.numeric(colnames(size_df)))))){
-    colnames(size_df) <- seq(1, ncol(size_df)) 
-  }
-  
-  if(any(duplicated(clones))){
-    warning("Some clones have the same ID. Each clone should have a unique ID")
-  }
-  if(is.null(time_pts)){
-    time_pts <- colnames(size_df)
-  }else{
-    time_pts <- as.character(sort(as.numeric(unique(time_pts))))
-  }
-
-  if(fill_gaps_in_size){
-    size_df <- as.data.frame(t(apply(size_df, 1, fill_in_gaps)))
-  }
-  
-  ### Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion
-  if(test_links){
-    updated_edges <- check_and_update_edges(clones, parents)
-    clones <- updated_edges$updated_clones
-    parents <- updated_edges$updated_parents
-  }
-  
-  if(data_type=="size"){
-    ### data are sizes of each clone. Here, the frequency of each mutation will be determined
-    freq_df <- get_mutation_df(size_df, clones = clones, parents = parents)
-    freq_mat <- as.matrix(freq_df)
-    if(add_origin){
-      og_time_pts <- colnames(freq_mat)
-      freq_mat <- add_origin_mat(freq_mat, tm_frac = tm_frac)
-      # neg_time_pts <- colnames(freq_mat)[! colnames(freq_mat) %in% og_time_pts]
-      added_time_pts <- colnames(freq_mat)[! colnames(freq_mat) %in% og_time_pts]
-      time_pts <- c(added_time_pts, time_pts)
-      og_colnames <- c(rep("", length(added_time_pts)), og_colnames)
-    }
-    
-  }else{
-    check_freq_mat(size_df, clones, parents)
-    freq_mat <- size_df
-    freq_mat <- as.data.frame(freq_mat)
-    if(add_origin){
-      og_time_pts <- colnames(freq_mat)
-      freq_mat <- add_origin_mat(freq_mat, tm_frac = tm_frac)
-      added_time_pts <- colnames(freq_mat)[! colnames(freq_mat) %in% og_time_pts]
-      time_pts <- c(added_time_pts, time_pts)
-      og_colnames <- c(rep("", length(added_time_pts)), og_colnames)
-      
-    }
-    
-    # parents[which(! parents %in% clones)]
-    # updated_edges <- check_and_update_edges(clones, parents)
-    # clones <- updated_edges$updated_clones
-    # parents <- updated_edges$updated_parents
-  }
-  
-  ### Possible that parent has frequency of 0. Shouldn't, but possible output of bioinformatics tools
-  # size_zero_idx <- which(apply(freq_mat, 1, function(x){all(x==0)}))
-  # clones_with_all_size_zero <- clones[clones %in% clones[size_zero_idx]]
-  # p_with_all_size_zero <- clones_with_all_size_zero[which(clones_with_all_size_zero %in% parents)]
-  # for(p in p_with_all_size_zero){
-  #   children_idx <- get_all_idx(p, clones, parents)
-  #   children_ids <- clones[children_idx]
-  #   actual_children_idx <- which(children_ids != p)
-  #   children_origins <- apply(freq_mat[children_idx[actual_children_idx], ], 1, function(x){which(x>0)[1]})
-  #   first_child <- names(which.min(children_origins))
-  #   first_child_idx <- which(clones==first_child)
-  #   
-  #   pidx <- which(clones==p)
-  #   freq_mat[pidx, ] <- freq_mat[first_child_idx, ]
-  # }
-  
-  
-  
-  
-  max_mutation_size <- max(freq_mat)
-  if(scale_by_sizes_at_time){
-    max_sizes_at_each_time <- apply(freq_mat, 2, max)
-    freq_mat <- sweep(freq_mat, MARGIN = 2, max_sizes_at_each_time, FUN = "/")
-    
-  }else{
-    freq_mat <- freq_mat/max_mutation_size
-  }
-  
-  
-  ### Subset time points to be plotted
-  
-  # freq_mat <- freq_mat[,which(colnames(size_df) %in% time_pts)]
-  freq_mat <- freq_mat[, time_pts]
-  if(is.null(nrow(freq_mat))){
-    ###Only 1 clone
-    freq_mat <- t(as.matrix(freq_mat))
-  }
-  colnames(freq_mat) <- time_pts
-  row.names(freq_mat) <- clones
-  
-  ### Possible that a clone was recorded, but never had any sizes greater than 0
-  existed_idx <- which(rowSums(freq_mat) > 0)
-  freq_mat <- freq_mat[existed_idx, ]
-  clones <- clones[existed_idx]
-  parents <- parents[existed_idx]
-  
-  ### Get idx of clones that are extant after subsetting timepoints ###
-  origin_times <- apply(freq_mat, 1, function(x){which(x>0)[1]})
-  idx_after_time_thresh <- which(is.na(origin_times)==F)
-  freq_mat <- freq_mat[idx_after_time_thresh, ]
-  
-  if(is.null(nrow(freq_mat))){ 
-    ###Only 1 clone
-    freq_mat <- t(as.matrix(freq_mat))
-  }
-  
-  clones <- clones[idx_after_time_thresh]
-  parents <- parents[idx_after_time_thresh]
-  origin_times <-origin_times[idx_after_time_thresh] ### Order by origin times at the end
-  time_pts <- as.numeric(time_pts)
-
-  if(!is.null(attribute_df)){
-    attribute_df <- attribute_df[idx_after_time_thresh, ]
-  }
-  
-  ### Filter values based on threshold
-  if(threshold > 0){
-    filtered_info <- filter_freq_mat(clones, parents, freq_mat, threshold)
-    freq_mat <- filtered_info$freq_mat
-    parents <- filtered_info$parents
-    clones <- filtered_info$clones
-    filtered_idx <- filtered_info$thresh_idx
-    origin_times <- origin_times[filtered_idx]
-    
-    if(is.null(nrow(freq_mat))){ 
-      ### Only 1 clone after thresholding
-      freq_mat <- t(as.matrix(freq_mat))
-      row.names(freq_mat) <- clones
-      filtered_idx <- as.numeric(filtered_idx)
-    }
-    
-    if(!is.null(attribute_df)){
-      attribute_df <- attribute_df[filtered_idx, ]
-    }
-  }
-  if(is.null(attribute_df)){
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
-  }
-  
-  attribute_df$origin <- origin_times
-  
-  ordered_idx <- order(origin_times)
-  clones <- clones[ordered_idx]
-  parents <- parents[ordered_idx]
-  attribute_df <- attribute_df[ordered_idx, ]
-  freq_mat <- freq_mat[ordered_idx, ]
-  # 
-  # clone_col_idx <- as.numeric(which(sapply(colnames(attribute_df), FUN = function(x){all(clones %in% as.character(unique(attribute_df[,x])))})==T))
-  # 
-  # if(length(clone_col_idx) > 1){
-  #   #### If all clones in pos df are also parents, and there are both parent and clone ids in attribute_df, then more than 1 column will considered the clone_id column in attribute_df
-  #   ### Not possible for all clones in attribute df to also all be parents 
-  #   ### So clone_id column is the one that has more unique elements
-  #   n_unique_clones <- apply(attribute_df[clone_col_idx], 2, function(x){length(unique(x))})
-  #   clone_col_name <- names(n_unique_clones)[which(n_unique_clones==max(n_unique_clones))]
-  #   clone_col_idx <- which(colnames(attribute_df)==clone_col_name)
-  # }
-  # 
-  # colnames(attribute_df)[clone_col_idx] <- "clone_id"
-  
-  return(list("clones"=clones, "parents"=parents, "attributes"=attribute_df, "freq_mat"=freq_mat, "max_size"=max_mutation_size, "og_colnames"=og_colnames))
-  
-  
-}
-
-beta_growth_fxn <- function(x, te, tm, y_max){
-  ###https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4244967/
-  y <- y_max*(1+ (te-x)/(te-tm))*((x/te)**(te/(te-tm)))
-  return(y)
-}
-
-add_origin_mat <- function(mut_freq, tm_frac=0.6){
-  ### FOR TESTING 
-  # mut_freq = freq_mat
-  #####
-  # colnames(mut_freq) <- seq(1, ncol(mut_freq))
-  time_step_size <- mean(diff(as.numeric(colnames(mut_freq))))
-  ntime_steps <- ncol(mut_freq)
-  te <- ntime_steps*time_step_size
-  nx <- 10
-  new_x <- seq(0.000001, te, length.out = nx)
-
-  
-  
-  origin_times <- apply(mut_freq, 1, FUN = function(x){which(x>0)[1]})
-  origin_at_t1_idx <- which(origin_times==1)
-  size_order <- order(mut_freq[origin_at_t1_idx, 1], decreasing = T)
-  origin_at_t1_idx <- origin_at_t1_idx[size_order]
-  
-  nudge_val <- floor(nx/(length(origin_at_t1_idx)+1))
-  nudge <-  0 
-  origin_size_mat <- matrix(0, nrow=nrow(mut_freq), ncol = nx)
-  colnames(origin_size_mat) <- as.character(new_x)
-  for(idx in origin_at_t1_idx){
-    initial_size <- mut_freq[idx, 1]
-    
-    ### temp_te gets small and smaller: 0 to nx - nudge
-    temp_te <- nx - nudge
-    temp_tm <- tm_frac*temp_te
-    ### Also adjust tm, but do same as with above
-    
-    ### shift position in origin matrix by same amount temp_te is decreasing by: nude to ncol
-    
-    clone_new_x <- seq(0, temp_te, length.out = nx-nudge)
-    origin_size_mat[idx, seq(nudge+1, nx)] <- beta_growth_fxn(clone_new_x, temp_te, temp_tm, initial_size)
-    nudge <- nudge + nudge_val
-  }
-  
-  
-  colnames(origin_size_mat) <- rev(-as.numeric(colnames(origin_size_mat)))
-  new_origin_mat <- origin_size_mat[, seq(1, ncol(origin_size_mat)-1)] 
-  colnames(new_origin_mat) <- colnames(origin_size_mat)[seq(2, ncol(origin_size_mat))]
-  new_mat <- cbind(new_origin_mat, mut_freq) #### Last column of origin_size_mat is same as first column of mut_freq
-  
-  return(new_mat)
-  
-}
 #'@title get_evofreq
 #'
 #'  Collect information to plot frequency dynamics
@@ -263,7 +7,7 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #'@param size_df Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint
 #'@param clones Array containing the clone ids. The index of each clone must correspond to the same index of the row in \code{size_df} that contains the sizes of that clone over time
 #'@param parents Array containing the ids of the parent of each clone in the \code{clones} array.
-#'@param fill_value Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{colors()}
+#'@param fill_value Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}
 #'@param fill_range Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.
 #'@param time_pts Array containing the name of the timepoints. If NULL, then the name of timepoints will be a sequence from 1 to the number of columns in \code{size_df}.
 #'@param clone_cmap Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.
@@ -274,7 +18,6 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #'@param interp_method String identifying the interpolation method to use. Either "bezier", or a method used by \code{\link[stats]{splinefun}}
 #'@param fill_gaps_in_size Boolean defining whether or not missing sizes should be filled in
 #'@param test_links Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion. 
-#'@param fill_range Range of values for the attribute to color by. If NULL, then range is determined from the attribute data
 #'@param add_origin Boolean defining whether or not to add origin positions to founder clones, even if not present in the data. Best for sparse observed data
 #'@param tm_frac Value between 0 and 1 that determines where the maximum growth rate is in the inferred origin sizes. Lower values result in earlier maximum growth
 #'@return Formatted dataframe called a "freq_frame" containing the information needed to plot the frequency dynamics over time.
@@ -334,7 +77,7 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #' rgb_evo_p <- plot_evofreq(rgb_freq_frame)
 #' 
 #' ### Custom colors can also be any of the named colors in R. A list of the colors can be found with \code{colors()}
-#' named_clone_colors <- sample(colors(), length(clones), replace = F)
+#' named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
 #' named_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = named_clone_colors)
 #' named_evo_p <- plot_evofreq(named_freq_frame)
 #' 
@@ -348,7 +91,7 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
 #'default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
 #'}
 #'@export
-get_evofreq <- function(size_df, clones, parents, fill_value=NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, fill_range = NULL, add_origin=F, tm_frac=0.6){
+get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6){
   # # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
   # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
@@ -481,7 +224,7 @@ get_genomes <- function(c_list, p_list, out="binary"){
     gene_mat <- matrix(0, nrow=n_clones, ncol=n_clones)
   }else{
     bases <- c("A", "C", "T", "G")
-    gene_mat <- matrix(sample(bases, n_clones**2, replace = T), nrow=n_clones, ncol=n_clones)
+    gene_mat <- matrix(sample(bases, n_clones**2, replace = TRUE), nrow=n_clones, ncol=n_clones)
   }
   
   row.names(gene_mat) <- c_list
@@ -1028,6 +771,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #'@param bw width of lines surrounding polygons
 #'@param bc color of lines surrounding polygons
 #'@param show_axes Whether to display axes
+#'@param fill_range Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.
 #'@return ggplot of the frequency dynamics
 #'@examples
 #'
@@ -1035,9 +779,9 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 #' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
 #' attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-#' attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
-#' attr_parents <- example.easy.wide.with.attributes$parent
-#' attr_clones <- example.easy.wide.with.attributes$clone
+#' size_df <- example.easy.wide.with.attributes[, time_col_idx]
+#' parents <- example.easy.wide.with.attributes$parent
+#' clones <- example.easy.wide.with.attributes$clone
 #' fitness <- example.easy.wide.with.attributes$fitness
 #'
 #' 
@@ -1058,7 +802,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' rgb_evo_p <- plot_evofreq(rgb_freq_frame)
 #' 
 #' ### Custom colors can also be any of the named colors in R. A list of the colors can be found with \code{colors()}
-#' named_clone_colors <- sample(colors(), length(clones), replace = F)
+#' named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
 #' named_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = named_clone_colors)
 #' named_evo_p <- plot_evofreq(named_freq_frame)
 #' 
@@ -1376,5 +1120,262 @@ get_evofreq_labels <- function(freq_frame, apply_labels=FALSE, custom_label_text
   } else {
     return(position_df) # just return dataframe
   }
+}
+
+filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6){
+  # data("example.easy.wide.with.attributes")
+  # ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
+  # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
+  # attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
+  # attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
+  # size_df <- example.easy.wide.with.attributes[, time_col_idx]
+  # parents <- example.easy.wide.with.attributes$parent
+  # clones <- example.easy.wide.with.attributes$clone
+  # 
+  # clone_cmap <- "rainbow_soft"
+  # # size_df <- mut_freq
+  # threshold <- 0.0
+  # # clones <- mut_df$clone
+  # # parents <- mut_df$parent
+  # time_pts <- NULL
+  # attribute_val_name <- "fitness" #"new_antigenicity"
+  # attribute_df <- attribute_df
+  # data_type <- "size"
+  # data_type <- "size"
+  # scale_by_sizes_at_time <- F
+  # interpolation_steps <- 10
+  # fill_gaps_in_size <- F
+  # test_links <- T
+  # threshold <- 0.01
+  # fill_range <- NULL
+  # add_origin <- T
+  # tm_frac <- 0.6
+  #####
+  
+  
+  ### Possible that column names are numbers, but timepoints are unequally spaced. Only change if cannot be converted to numeric
+  og_colnames <- colnames(size_df)
+  if(suppressWarnings(all(is.na(as.numeric(colnames(size_df)))))){
+    colnames(size_df) <- seq(1, ncol(size_df)) 
+  }
+  
+  if(any(duplicated(clones))){
+    warning("Some clones have the same ID. Each clone should have a unique ID")
+  }
+  if(is.null(time_pts)){
+    time_pts <- colnames(size_df)
+  }else{
+    time_pts <- as.character(sort(as.numeric(unique(time_pts))))
+  }
+  
+  if(fill_gaps_in_size){
+    size_df <- as.data.frame(t(apply(size_df, 1, fill_in_gaps)))
+  }
+  
+  ### Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion
+  if(test_links){
+    updated_edges <- check_and_update_edges(clones, parents)
+    clones <- updated_edges$updated_clones
+    parents <- updated_edges$updated_parents
+  }
+  
+  if(data_type=="size"){
+    ### data are sizes of each clone. Here, the frequency of each mutation will be determined
+    freq_df <- get_mutation_df(size_df, clones = clones, parents = parents)
+    freq_mat <- as.matrix(freq_df)
+    if(add_origin){
+      og_time_pts <- colnames(freq_mat)
+      freq_mat <- add_origin_mat(freq_mat, tm_frac = tm_frac)
+      # neg_time_pts <- colnames(freq_mat)[! colnames(freq_mat) %in% og_time_pts]
+      added_time_pts <- colnames(freq_mat)[! colnames(freq_mat) %in% og_time_pts]
+      time_pts <- c(added_time_pts, time_pts)
+      og_colnames <- c(rep("", length(added_time_pts)), og_colnames)
+    }
+    
+  }else{
+    check_freq_mat(size_df, clones, parents)
+    freq_mat <- size_df
+    freq_mat <- as.data.frame(freq_mat)
+    if(add_origin){
+      og_time_pts <- colnames(freq_mat)
+      freq_mat <- add_origin_mat(freq_mat, tm_frac = tm_frac)
+      added_time_pts <- colnames(freq_mat)[! colnames(freq_mat) %in% og_time_pts]
+      time_pts <- c(added_time_pts, time_pts)
+      og_colnames <- c(rep("", length(added_time_pts)), og_colnames)
+      
+    }
+    
+    # parents[which(! parents %in% clones)]
+    # updated_edges <- check_and_update_edges(clones, parents)
+    # clones <- updated_edges$updated_clones
+    # parents <- updated_edges$updated_parents
+  }
+  
+  ### Possible that parent has frequency of 0. Shouldn't, but possible output of bioinformatics tools
+  # size_zero_idx <- which(apply(freq_mat, 1, function(x){all(x==0)}))
+  # clones_with_all_size_zero <- clones[clones %in% clones[size_zero_idx]]
+  # p_with_all_size_zero <- clones_with_all_size_zero[which(clones_with_all_size_zero %in% parents)]
+  # for(p in p_with_all_size_zero){
+  #   children_idx <- get_all_idx(p, clones, parents)
+  #   children_ids <- clones[children_idx]
+  #   actual_children_idx <- which(children_ids != p)
+  #   children_origins <- apply(freq_mat[children_idx[actual_children_idx], ], 1, function(x){which(x>0)[1]})
+  #   first_child <- names(which.min(children_origins))
+  #   first_child_idx <- which(clones==first_child)
+  #   
+  #   pidx <- which(clones==p)
+  #   freq_mat[pidx, ] <- freq_mat[first_child_idx, ]
+  # }
+  
+  
+  
+  
+  max_mutation_size <- max(freq_mat)
+  if(scale_by_sizes_at_time){
+    max_sizes_at_each_time <- apply(freq_mat, 2, max)
+    freq_mat <- sweep(freq_mat, MARGIN = 2, max_sizes_at_each_time, FUN = "/")
+    
+  }else{
+    freq_mat <- freq_mat/max_mutation_size
+  }
+  
+  
+  ### Subset time points to be plotted
+  
+  # freq_mat <- freq_mat[,which(colnames(size_df) %in% time_pts)]
+  freq_mat <- freq_mat[, time_pts]
+  if(is.null(nrow(freq_mat))){
+    ###Only 1 clone
+    freq_mat <- t(as.matrix(freq_mat))
+  }
+  colnames(freq_mat) <- time_pts
+  row.names(freq_mat) <- clones
+  
+  ### Possible that a clone was recorded, but never had any sizes greater than 0
+  existed_idx <- which(rowSums(freq_mat) > 0)
+  freq_mat <- freq_mat[existed_idx, ]
+  clones <- clones[existed_idx]
+  parents <- parents[existed_idx]
+  
+  ### Get idx of clones that are extant after subsetting timepoints ###
+  origin_times <- apply(freq_mat, 1, function(x){which(x>0)[1]})
+  idx_after_time_thresh <- which(is.na(origin_times)==F)
+  freq_mat <- freq_mat[idx_after_time_thresh, ]
+  
+  if(is.null(nrow(freq_mat))){ 
+    ###Only 1 clone
+    freq_mat <- t(as.matrix(freq_mat))
+  }
+  
+  clones <- clones[idx_after_time_thresh]
+  parents <- parents[idx_after_time_thresh]
+  origin_times <-origin_times[idx_after_time_thresh] ### Order by origin times at the end
+  time_pts <- as.numeric(time_pts)
+  
+  if(!is.null(attribute_df)){
+    attribute_df <- attribute_df[idx_after_time_thresh, ]
+  }
+  
+  ### Filter values based on threshold
+  if(threshold > 0){
+    filtered_info <- filter_freq_mat(clones, parents, freq_mat, threshold)
+    freq_mat <- filtered_info$freq_mat
+    parents <- filtered_info$parents
+    clones <- filtered_info$clones
+    filtered_idx <- filtered_info$thresh_idx
+    origin_times <- origin_times[filtered_idx]
+    
+    if(is.null(nrow(freq_mat))){ 
+      ### Only 1 clone after thresholding
+      freq_mat <- t(as.matrix(freq_mat))
+      row.names(freq_mat) <- clones
+      filtered_idx <- as.numeric(filtered_idx)
+    }
+    
+    if(!is.null(attribute_df)){
+      attribute_df <- attribute_df[filtered_idx, ]
+    }
+  }
+  if(is.null(attribute_df)){
+    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+  }
+  
+  attribute_df$origin <- origin_times
+  
+  ordered_idx <- order(origin_times)
+  clones <- clones[ordered_idx]
+  parents <- parents[ordered_idx]
+  attribute_df <- attribute_df[ordered_idx, ]
+  freq_mat <- freq_mat[ordered_idx, ]
+  # 
+  # clone_col_idx <- as.numeric(which(sapply(colnames(attribute_df), FUN = function(x){all(clones %in% as.character(unique(attribute_df[,x])))})==T))
+  # 
+  # if(length(clone_col_idx) > 1){
+  #   #### If all clones in pos df are also parents, and there are both parent and clone ids in attribute_df, then more than 1 column will considered the clone_id column in attribute_df
+  #   ### Not possible for all clones in attribute df to also all be parents 
+  #   ### So clone_id column is the one that has more unique elements
+  #   n_unique_clones <- apply(attribute_df[clone_col_idx], 2, function(x){length(unique(x))})
+  #   clone_col_name <- names(n_unique_clones)[which(n_unique_clones==max(n_unique_clones))]
+  #   clone_col_idx <- which(colnames(attribute_df)==clone_col_name)
+  # }
+  # 
+  # colnames(attribute_df)[clone_col_idx] <- "clone_id"
+  
+  return(list("clones"=clones, "parents"=parents, "attributes"=attribute_df, "freq_mat"=freq_mat, "max_size"=max_mutation_size, "og_colnames"=og_colnames))
+  
+  
+}
+
+beta_growth_fxn <- function(x, te, tm, y_max){
+  ###https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4244967/
+  y <- y_max*(1+ (te-x)/(te-tm))*((x/te)**(te/(te-tm)))
+  return(y)
+}
+
+add_origin_mat <- function(mut_freq, tm_frac=0.6){
+  ### FOR TESTING 
+  # mut_freq = freq_mat
+  #####
+  # colnames(mut_freq) <- seq(1, ncol(mut_freq))
+  time_step_size <- mean(diff(as.numeric(colnames(mut_freq))))
+  ntime_steps <- ncol(mut_freq)
+  te <- ntime_steps*time_step_size
+  nx <- 10
+  new_x <- seq(0.000001, te, length.out = nx)
+  
+  
+  
+  origin_times <- apply(mut_freq, 1, FUN = function(x){which(x>0)[1]})
+  origin_at_t1_idx <- which(origin_times==1)
+  size_order <- order(mut_freq[origin_at_t1_idx, 1], decreasing = T)
+  origin_at_t1_idx <- origin_at_t1_idx[size_order]
+  
+  nudge_val <- floor(nx/(length(origin_at_t1_idx)+1))
+  nudge <-  0 
+  origin_size_mat <- matrix(0, nrow=nrow(mut_freq), ncol = nx)
+  colnames(origin_size_mat) <- as.character(new_x)
+  for(idx in origin_at_t1_idx){
+    initial_size <- mut_freq[idx, 1]
+    
+    ### temp_te gets small and smaller: 0 to nx - nudge
+    temp_te <- nx - nudge
+    temp_tm <- tm_frac*temp_te
+    ### Also adjust tm, but do same as with above
+    
+    ### shift position in origin matrix by same amount temp_te is decreasing by: nude to ncol
+    
+    clone_new_x <- seq(0, temp_te, length.out = nx-nudge)
+    origin_size_mat[idx, seq(nudge+1, nx)] <- beta_growth_fxn(clone_new_x, temp_te, temp_tm, initial_size)
+    nudge <- nudge + nudge_val
+  }
+  
+  
+  colnames(origin_size_mat) <- rev(-as.numeric(colnames(origin_size_mat)))
+  new_origin_mat <- origin_size_mat[, seq(1, ncol(origin_size_mat)-1)] 
+  colnames(new_origin_mat) <- colnames(origin_size_mat)[seq(2, ncol(origin_size_mat))]
+  new_mat <- cbind(new_origin_mat, mut_freq) #### Last column of origin_size_mat is same as first column of mut_freq
+  
+  return(new_mat)
+  
 }
 

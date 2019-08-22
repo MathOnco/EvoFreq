@@ -336,7 +336,7 @@ get_elbow_links <- function(dendro_df){
 #' attribute_elbow_links <- attribute_dendro_df$links
 #' attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links, scale_by_node_size = TRUE)
 #' @export
-get_evogram <- function(size_df, clones, parents,  fill_value=NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, fill_range = NULL, link_type="elbow"){
+get_evogram <- function(size_df, clones, parents,  fill_value=NULL, fill_range = NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, link_type="elbow"){
   # ## FOR TESTING ###
   # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values#
   # data("example.easy.wide")

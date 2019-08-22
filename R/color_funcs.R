@@ -30,7 +30,7 @@
 #' rgb_evo_p <- plot_evofreq(rgb_freq_frame)
 #' 
 #' ### Custom colors can also be any of the named colors in R. A list of the colors can be found with \code{colors()}
-#' named_clone_colors <- sample(colors(), length(clones), replace = F)
+#' named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
 #' named_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = named_clone_colors)
 #' named_evo_p <- plot_evofreq(named_freq_frame)
 #' 
@@ -49,7 +49,7 @@
 #' tree_pos_fitness_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = fitness)
 #' tree_p_fitness <- plot_evogram(tree_pos_fitness_color, tree_links)
 #' #'### Color node using custom colors in hexcode format
-#' tree_info_custom_color <- update_colors(evo_freq_df, clones = clones, fill_value = hex_clone_colors)
+#' tree_info_custom_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = hex_clone_colors)
 #' tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 #'@export
 update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL, fill_range=NULL, attribute_val_name=NULL){

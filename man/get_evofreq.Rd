@@ -6,13 +6,12 @@
 
  Collect information to plot frequency dynamics}
 \usage{
-get_evofreq(size_df, clones, parents, time_pts = NULL,
-  attribute_df = NULL, attribute_val_name = NULL,
-  clone_id_col_in_att_df = "clone_id", clone_cmap = "rainbow_soft",
+get_evofreq(size_df, clones, parents, fill_value = NULL,
+  fill_range = NULL, time_pts = NULL, clone_cmap = NULL,
   threshold = 0.01, scale_by_sizes_at_time = F, data_type = "size",
   interpolation_steps = 20, interp_method = "monoH.FC",
-  fill_gaps_in_size = F, test_links = T, attribute_val_range = NULL,
-  add_origin = F, tm_frac = 0.6)
+  fill_gaps_in_size = F, test_links = T, add_origin = F,
+  tm_frac = 0.6)
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
@@ -21,13 +20,11 @@ get_evofreq(size_df, clones, parents, time_pts = NULL,
 
 \item{parents}{Array containing the ids of the parent of each clone in the \code{clones} array.}
 
+\item{fill_value}{Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}}
+
+\item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
+
 \item{time_pts}{Array containing the name of the timepoints. If NULL, then the name of timepoints will be a sequence from 1 to the number of columns in \code{size_df}.}
-
-\item{attribute_df}{Optional dataframe containing attributes for each clone that can be used to determine the color of each clone in the plot. This can include a column of custom colors to use \code{attribute_val_name}.}
-
-\item{attribute_val_name}{String defining which column in \code{attribute_df} will be used to color each clone. If attribute column values are a hex code in this column, these colors will be used instead of \code{clone_cmap}.}
-
-\item{clone_id_col_in_att_df}{Name of the column in attribute_df that contains the clone IDs}
 
 \item{clone_cmap}{Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.}
 
@@ -44,8 +41,6 @@ get_evofreq(size_df, clones, parents, time_pts = NULL,
 \item{fill_gaps_in_size}{Boolean defining whether or not missing sizes should be filled in}
 
 \item{test_links}{Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion.}
-
-\item{attribute_val_range}{Range of values for the attribute to color by. If NULL, then range is determined from the attribute data}
 
 \item{add_origin}{Boolean defining whether or not to add origin positions to founder clones, even if not present in the data. Best for sparse observed data}
 
@@ -64,9 +59,6 @@ get_evofreq
 data("example.easy.wide")
 ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
-attribute_col_idx <-suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
-
-attribute_df <- example.easy.wide[, attribute_col_idx]
 size_df <- example.easy.wide[, time_col_idx]
 parents <- example.easy.wide$parents
 clones <- example.easy.wide$clones
@@ -92,7 +84,7 @@ mutation_count_df <- get_mutation_df(size_df, clones, parents)
 freq_frame <- get_evofreq(mutation_count_df, clones, parents, data_type = "mutation")
 evo_p_from_mutation <- plot_evofreq(freq_frame)
 
-### Input needs to be in wide format, but can convert long format data to wide format using \\code{\\link{long_to_wide_freqframe}}
+### Input needs to be in wide format, but can be converted to long format data to wide format using \\code{\\link{long_to_wide_freqframe}}
 wide_df_info <- long_to_wide_freqframe(long_pop_sizes_df = example.easy.long.sizes, time_col_name = "Time", clone_col_name = "clone", parent_col_name = "parent", size_col_name = "Size", edges_df = example.easy.long.edges)
 clones_from_long <- wide_df_info$clones
 parents_from_long <- wide_df_info$parents
@@ -100,18 +92,34 @@ size_df_from_long <- wide_df_info$wide_size_df
 freq_frame <- get_evofreq(size_df_from_long, clones_from_long, parents_from_long)
 evo_p_from_long <- plot_evofreq(freq_frame)
 
-### Can also color each genotype by an attribute. This can be set when getting the frequency dynamics, or by updating the color later using \\code{\\link{update_colors}}
-data("example.easy.wide.with.attributes")
-### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
-time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
-attribute_df <- example.easy.wide.with.attributes[, attribute_col_idx]
-attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
-attr_parents <- example.easy.wide.with.attributes$parent
-attr_clones <- example.easy.wide.with.attributes$clone
-clone_id_col <- "clone"
-### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package
-freq_frame <- get_evofreq(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col, clone_cmap="magma")
-fitness_evo_p <- plot_evofreq(freq_frame)
+### Setting of colors can be done when getting the freq_frame, or by updating the color later using \\code{\\link{update_colors}}. Available colormaps are those found in \\code{\\link[colormap]{colormaps}}
+### Default colormap is rainbow_soft, but this can be changed using the \\code{clone_cmap} argument. 
+jet_freq_frame <- get_evofreq(size_df, clones, parents, clone_cmap = "jet")
+jet_evo_p <- plot_evofreq(jet_freq_frame)
+
+### Can color each clone by an attribute by providing a \\code{fill_value}. Default colormap is viridis, but this can be changed using the \\code{clone_cmap} argument
+fitness <- runif(length(clones))
+fitness_freq_frame <- get_evofreq(size_df, clones, parents, fill_value = fitness)
+fitness_evo_p <- plot_evofreq(fitness_freq_frame)
+
+### The user can also provide custom colors for each clone, which will need to be passed into the \\code{fill_value} argument
+### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
+rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+rgb_freq_frame <- get_evofreq(size_df, clones, parents, rgb_clone_colors)
+rgb_evo_p <- plot_evofreq(rgb_freq_frame)
+
+### Custom colors can also be any of the named colors in R. A list of the colors can be found with \\code{colors()}
+named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
+named_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = named_clone_colors)
+named_evo_p <- plot_evofreq(named_freq_frame)
+
+### Custom colors can also be specified using hexcode
+hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+hex_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = hex_clone_colors)
+hex_evo_p <- plot_evofreq(hex_freq_frame)
+
+### Can revert back to original colors
+freq_frame_default_color <- update_colors(fitness_freq_frame, clones=clones)
+default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
 }
 }
