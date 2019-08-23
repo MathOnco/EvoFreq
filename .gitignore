@@ -8,3 +8,7 @@ generate_sample_data.R
 example_test.R
 barcode_data.R
 .Rproj.user
+
+R/fix_tree.R
+
+*.gif
