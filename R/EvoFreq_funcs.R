@@ -100,7 +100,16 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   # parents <- example.easy.wide$parents
   # clones <- example.easy.wide$clones
   # fill_value <- clone_attribute_colors
-  # threshold <- 0.0
+  
+  # parents <- clone_df$Parent
+  # clones <- row.names(clone_df)
+  # time_pts <- as.numeric(colnames(clone_df))
+  # time_pts <- which(!is.na(time_pts))
+  # size_df <- clone_df[time_pts]
+  # fill_value <- clone_df$Drivers
+  
+  
+  # threshold <- 0.01
   # clone_cmap <- NULL
   # time_pts <- NULL
   # fill_range <-  NULL
@@ -123,7 +132,8 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
       attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
     }
     
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    # attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+    attribute_df <- data.frame("clone_id"=clones)
     attribute_df[attribute_val_name] <- fill_value
   }else{
     attribute_df <- NULL
@@ -144,9 +154,9 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   }
 
   if(!is.null(attribute_val_name)){
-    attribute_vals <- attribute_df[,attribute_val_name]
+    fill_value <- attribute_df[,attribute_val_name]
     if(is.null(fill_range)){
-      fill_range <- range(attribute_vals, na.rm = T)
+      fill_range <- range(fill_value, na.rm = T)
     }
   }
   
@@ -774,7 +784,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #'@param fill_range Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.
 #'@return ggplot of the frequency dynamics
 #'@examples
-#'
+#' 
 #' data("example.easy.wide.with.attributes")
 #' ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
 #' time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
@@ -783,8 +793,8 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' parents <- example.easy.wide.with.attributes$parent
 #' clones <- example.easy.wide.with.attributes$clone
 #' fitness <- example.easy.wide.with.attributes$fitness
-#'
 #' 
+#' #' 
 #' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
 #' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument. 
 #' freq_frame <- get_evofreq(size_df, clones, parents)
@@ -794,7 +804,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' fitness <- runif(length(clones))
 #' fitness_freq_frame <- get_evofreq(size_df, clones, parents, fill_value = fitness)
 #' fitness_evo_p <- plot_evofreq(fitness_freq_frame)
-#' 
+#' #' 
 #' ### The user can also provide custom colors for each clone, which will need to be passed into the \code{fill_value} argument
 #' ### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
 #' rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
@@ -814,16 +824,17 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' ### Can revert back to original colors
 #'freq_frame_default_color <- update_colors(fitness_freq_frame, clones=clones)
 #'default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
-
+#'
 #'### Can add gganimate objects to evo_p_by_size to create the animation
 #'
 #'\donttest{
 #' library(gganimate)
 #' movie_p <- fitness_evo_p +
-#'    transition_reveal(x) +
-#'     view_follow()
-#' print(movie_p)
-#'}
+#'   transition_reveal(x, range=range(fitness_freq_frame$x)) +
+#'    view_follow()
+#' # print(movie_p)
+#' anim_save("evofreq_movie.gif", movie_p)
+#' }
 #'@export
 plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=NULL, bw=0.05, bc="grey75", show_axes=T, fill_range=NULL){
   
