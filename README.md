@@ -147,14 +147,6 @@ One of the most powerful features is the endless additions that can be added to 
 
 For a full list of the different functions and example datasets please use `help(package="EvoFreq")`.
 
-## Dependencies
-
-Most of the features for EvoFreq don't require special packages. Most of the packages that are required are easily installed. On top of some of the standard libraries `magick` is required for animations. For mac users this requires `ffmpeg` that can be installed via [macports](https://www.macports.org) like so:
-```bash
-sudo port install ffmpeg
-```
-Otherwise, EvoFreq will require ggplot2, colormap, reshape2, ggraph, ggforce, igraph, tidygraph, magick, intergraph, sna, GGally, and ape.
-
 ## Current Papers utilizing EvoFreq
 
 These papers have used EvoFreq for their publication ready images.
