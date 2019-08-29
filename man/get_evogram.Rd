@@ -9,7 +9,7 @@ Collect information to plot dendrogram}
 get_evogram(size_df, clones, parents, fill_value = NULL,
   fill_range = NULL, time_pt = NULL, clone_cmap = NULL,
   threshold = 0.01, data_type = "size", fill_gaps_in_size = F,
-  test_links = T, link_type = "elbow")
+  test_links = T, link_type = "elbow", shuffle_colors = F)
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
@@ -35,6 +35,8 @@ get_evogram(size_df, clones, parents, fill_value = NULL,
 \item{test_links}{Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion.}
 
 \item{link_type}{Defines the shape of the edges berween nodes: "straight" draws straight lines between parents and childrend, while "elbow" draws a step from parent to child}
+
+\item{shuffle_colors}{Boolean determining if colors should be shuffled before being assigned to each clone. Only applies when fill_value = NULL}
 }
 \value{
 List containing two dataframes: "dendro_pos" contains the positions of the nodes, "links" contains the positions of the edges between nodes
