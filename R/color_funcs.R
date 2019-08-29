@@ -52,7 +52,7 @@
 #' tree_info_custom_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = hex_clone_colors)
 #' tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 #'@export
-update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL, fill_range=NULL, attribute_val_name=NULL){
+update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL, fill_range=NULL, attribute_val_name=NULL, shuffle_colors=F){
   ### FOR TESTING ###
   # evo_freq_df <- d_pos_df
   # attribute_range <- NULL
@@ -123,6 +123,9 @@ update_colors <- function(evo_freq_df, clones, fill_value=NULL, clone_cmap=NULL,
       clone_cmap <- 'rainbow_soft'      
     }
     clone_color <- get_clone_color(length(clones), clone_cmap)
+    if(shuffle_colors){
+      clone_color <- sample(clone_color)
+    }
     # attribute_df <- data.frame("clone_id"=clones, "parents"=parents, "plot_color"=clone_color)
     attribute_df <- data.frame("clone_id"=clones, "plot_color"=clone_color)
   }

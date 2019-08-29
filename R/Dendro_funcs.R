@@ -336,7 +336,7 @@ get_elbow_links <- function(dendro_df){
 #' attribute_elbow_links <- attribute_dendro_df$links
 #' attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links, scale_by_node_size = TRUE)
 #' @export
-get_evogram <- function(size_df, clones, parents,  fill_value=NULL, fill_range = NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, link_type="elbow"){
+get_evogram <- function(size_df, clones, parents,  fill_value=NULL, fill_range = NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, link_type="elbow", shuffle_colors=F){
   # ## FOR TESTING ###
   # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values#
   # data("example.easy.wide")
@@ -392,7 +392,7 @@ get_evogram <- function(size_df, clones, parents,  fill_value=NULL, fill_range =
     attribute_df <- to_plot_df$attributes
   }
   
-  dendro_pos <- update_colors(evo_freq_df = dendro_pos, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name)
+  dendro_pos <- update_colors(evo_freq_df = dendro_pos, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name, shuffle_colors=shuffle_colors)
   
   ### Add line segments: Elbow or diagonal ###
   if(link_type == "straight"){

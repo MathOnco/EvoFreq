@@ -39,28 +39,24 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
   # parents <- example.easy.wide.with.attributes$parent
   # clones <- example.easy.wide.with.attributes$clone
   # fill_value <- example.easy.wide.with.attributes$fitness
-  #
+  # 
   # clone_cmap <- NULL
   # size_df <- size_df
   # threshold <- 0.01
   # clones <- clones
   # parents <- parents
   # time_pts <- NULL
-  # attribute_val_name <- "fitness" #"new_antigenicity"
-  # attribute_df <- attribute_df
   # data_type <- "size"
   # scale_by_sizes_at_time <- F
-  # interpolation_steps <- 10
-  # attribute_cmap <- "viridis"
   # fill_gaps_in_size <- F
   # test_links <- T
   # threshold <- 0.01
   # attribute_val_range <- NULL
+  # fill_range <- NULL
   # 
   # node_size <- 5
   # scale_by_node_size <- T
   # orientation <- "td"
-  # clone_id_col_in_att_df <- "clone"
   #####
   
   if(!is.null(fill_value)){
@@ -105,8 +101,13 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
     to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
     sink()
     time_dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
+    
+    ###TODO Use level to get x position, but if depth is not level, move y to desired level
+    
+    
     time_dendro_pos <- get_straight_links(time_dendro_pos)
     time_dendro_pos$time <- time_idx
+    
     
     all_time_df_list[[as.character(tp)]] <- time_dendro_pos
 
