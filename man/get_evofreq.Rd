@@ -11,7 +11,7 @@ get_evofreq(size_df, clones, parents, fill_value = NULL,
   threshold = 0.01, scale_by_sizes_at_time = F, data_type = "size",
   interpolation_steps = 20, interp_method = "monoH.FC",
   fill_gaps_in_size = F, test_links = T, add_origin = F,
-  tm_frac = 0.6)
+  tm_frac = 0.6, rescale_after_thresholding = F, shuffle_colors = F)
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
@@ -45,6 +45,10 @@ get_evofreq(size_df, clones, parents, fill_value = NULL,
 \item{add_origin}{Boolean defining whether or not to add origin positions to founder clones, even if not present in the data. Best for sparse observed data}
 
 \item{tm_frac}{Value between 0 and 1 that determines where the maximum growth rate is in the inferred origin sizes. Lower values result in earlier maximum growth}
+
+\item{rescale_after_thresholding}{Boolean determining if frequencies should be rescaled after thresholding, so that frequencies are based on what was above the threshold.}
+
+\item{shuffle_colors}{Boolean determining if colors should be shuffled before being assigned to each clone. Only applies when fill_value = NULL}
 }
 \value{
 Formatted dataframe called a "freq_frame" containing the information needed to plot the frequency dynamics over time.

@@ -20,6 +20,8 @@
 #'@param test_links Make sure clone does not have the same id as it's parent. If true, it can cause infinite recursion. 
 #'@param add_origin Boolean defining whether or not to add origin positions to founder clones, even if not present in the data. Best for sparse observed data
 #'@param tm_frac Value between 0 and 1 that determines where the maximum growth rate is in the inferred origin sizes. Lower values result in earlier maximum growth
+#'@param rescale_after_thresholding Boolean determining if frequencies should be rescaled after thresholding, so that frequencies are based on what was above the threshold.
+#'@param shuffle_colors Boolean determining if colors should be shuffled before being assigned to each clone. Only applies when fill_value = NULL
 #'@return Formatted dataframe called a "freq_frame" containing the information needed to plot the frequency dynamics over time.
 #'
 #'@examples
@@ -91,7 +93,7 @@
 #'default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
 #'}
 #'@export
-get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6){
+get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6, rescale_after_thresholding=F, shuffle_colors=F){
   # # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
   # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
@@ -141,7 +143,7 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   }
   
   og_time_pts <- colnames(size_df)
-  to_plot_df <- filter_data(size_df = size_df, clones = clones, parents = parents, time_pts = time_pts, attribute_df = attribute_df, threshold = threshold, scale_by_sizes_at_time = scale_by_sizes_at_time, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links, add_origin=add_origin, tm_frac=tm_frac)
+  to_plot_df <- filter_data(size_df = size_df, clones = clones, parents = parents, time_pts = time_pts, attribute_df = attribute_df, threshold = threshold, scale_by_sizes_at_time = scale_by_sizes_at_time, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links, add_origin=add_origin, tm_frac=tm_frac, rescale_after_thresholding=rescale_after_thresholding)
   clones <- to_plot_df$clones
   parents <- to_plot_df$parents
   freq_mat <- to_plot_df$freq_mat
@@ -189,7 +191,7 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   }
   
   ### Supply attribute name since using deparse inside get_evofreq will return fill_value for the name of the attribute
-  plot_pos_df <- update_colors(evo_freq_df = plot_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name)
+  plot_pos_df <- update_colors(evo_freq_df = plot_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name, shuffle_colors = shuffle_colors)
 
   if(!scale_by_sizes_at_time){
     plot_pos_df$y <- plot_pos_df$y*max_mutation_size
@@ -1133,7 +1135,7 @@ get_evofreq_labels <- function(freq_frame, apply_labels=FALSE, custom_label_text
   }
 }
 
-filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6){
+filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6, rescale_after_thresholding=F){
   # data("example.easy.wide.with.attributes")
   # ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
   # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
@@ -1292,9 +1294,29 @@ filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
     filtered_info <- filter_freq_mat(clones, parents, freq_mat, threshold)
     freq_mat <- filtered_info$freq_mat
     parents <- filtered_info$parents
+    
     clones <- filtered_info$clones
     filtered_idx <- filtered_info$thresh_idx
     origin_times <- origin_times[filtered_idx]
+    
+    if(rescale_after_thresholding){
+      if(data_type=="size"){
+        freq_df <- get_mutation_df(size_df[filtered_idx, ], clones = clones, parents = parents)
+        freq_mat <- as.matrix(freq_df)
+      }else{
+        freq_mat <- as.matrix(freq_mat[filtered_idx,])
+      }
+      
+      
+      max_mutation_size <- max(freq_mat)
+      if(scale_by_sizes_at_time){
+        max_sizes_at_each_time <- apply(freq_mat, 2, max)
+        freq_mat <- sweep(freq_mat, MARGIN = 2, max_sizes_at_each_time, FUN = "/")
+        
+      }else{
+        freq_mat <- freq_mat/max_mutation_size
+      }
+    }
     
     if(is.null(nrow(freq_mat))){ 
       ### Only 1 clone after thresholding
