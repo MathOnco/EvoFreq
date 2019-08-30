@@ -213,7 +213,7 @@ get_pos <- function(clones, parents, mut_mat, og_time_pts=NULL){
   clone_pos_df <- do.call(rbind, clone_pos_list)
   
   # print(any(is.na(clone_pos_df$y)))
-  clone_pos_df$draw_order <- factor(clone_pos_df$draw_order, ordered=T, levels = sort(unique(clone_pos_df$draw_order), decreasing = F))
+  clone_pos_df$draw_order <- factor(clone_pos_df$draw_order, ordered=TRUE, levels = sort(unique(clone_pos_df$draw_order), decreasing = FALSE))
   # clone_pos_df$color <- as.character(clone_pos_df$color)
   clone_pos_df <- clone_pos_df[order(clone_pos_df$draw_order),]
   clone_pos_df$x <- as.numeric(clone_pos_df$x)

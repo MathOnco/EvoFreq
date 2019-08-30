@@ -28,7 +28,7 @@
 #' print(movie_p)
 #'}
 #'@export
-animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
+animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = FALSE, test_links=TRUE, node_size=5, scale_by_node_size=TRUE, orientation="td", depth="origin", rescale_after_thresholding=FALSE){
   # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
   # # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
@@ -47,39 +47,35 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
   # parents <- parents
   # time_pts <- NULL
   # data_type <- "size"
-  # scale_by_sizes_at_time <- F
-  # fill_gaps_in_size <- F
-  # test_links <- T
+  # scale_by_sizes_at_time <- FALSE
+  # fill_gaps_in_size <- FALSE
+  # test_links <- TRUE
   # threshold <- 0.01
   # attribute_val_range <- NULL
   # fill_range <- NULL
   # 
   # node_size <- 5
-  # scale_by_node_size <- T
+  # scale_by_node_size <- TRUE
   # orientation <- "td"
   #####
   
   if(!is.null(fill_value)){
-    attribute_val_name <- deparse(substitute(fill_value))
-    if(grepl("\\$", attribute_val_name)){
-      ### Value was passed in as a column in a dataframe
-      attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
-    }else if(grepl("\\[.*\\]", attribute_val_name)){
-      ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
-      attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
+    fill_name <- colnames(fill_value) ### Value was passed in  using a string to get the column, e.g. df[fill_name]
+    if(is.null(fill_name)){
+      paresed_fill_name <- deparse(substitute(fill_value))
+      fill_name <- get_argname(paresed_fill_name)
     }
-    
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
-    attribute_df[attribute_val_name] <- fill_value
+    attribute_df <- data.frame("clone_id"=clones)
+    attribute_df[fill_name] <- fill_value
   }else{
     attribute_df <- NULL
-    attribute_val_name <- NULL
+    fill_name <- NULL
   }
   
-  if(!is.null(attribute_val_name)){
-    attribute_vals <- attribute_df[,attribute_val_name]
+  if(!is.null(fill_name)){
+    attribute_vals <- attribute_df[,fill_name]
     if(is.null(fill_range)){
-      fill_range <- range(attribute_vals, na.rm = T)
+      fill_range <- range(attribute_vals, na.rm = TRUE)
     }
   }
   
@@ -98,7 +94,7 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
     tp <- time_pts[time_idx]
     sink("/dev/null") ### Suppress output
     # to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df, clone_id_col_in_att_df=clone_id_col_in_att_df, threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
-    to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
+    to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = tp, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links, rescale_after_thresholding=rescale_after_thresholding)
     sink()
     time_dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
     
@@ -142,13 +138,13 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
   d_pos_df <- do.call(rbind, all_time_df_list)
   d_pos_df <- d_pos_df[order(d_pos_df$time), ]
   
-  # if(is.null(attribute_val_name)){
+  # if(is.null(fill_name)){
   #   attribute_df <- NULL 
   # }
   # 
-  # d_pos_df <- update_colors(evo_freq_df = d_pos_df, attribute_df = attribute_df, attribute_val_name = attribute_val_name, clone_id_col_in_att_df=clone_id_col_in_att_df, clone_cmap = clone_cmap, attribute_range = attribute_val_range)
+  # d_pos_df <- update_colors(evo_freq_df = d_pos_df, attribute_df = attribute_df, fill_name = fill_name, clone_id_col_in_att_df=clone_id_col_in_att_df, clone_cmap = clone_cmap, attribute_range = attribute_val_range)
   length(fill_value)
-  d_pos_df <- update_colors(evo_freq_df = d_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name)
+  d_pos_df <- update_colors(evo_freq_df = d_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, fill_name=fill_name)
   
   
   
@@ -169,13 +165,13 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
     color_attribute_name <- "plot_color"
   }else{
     if(is.null(fill_range)){
-      fill_range <- range(d_pos_df[, color_attribute_name], na.rm = T)  
+      fill_range <- range(d_pos_df[, color_attribute_name], na.rm = TRUE)  
     }
   }
   
   
   p <- ggplot2::ggplot(d_pos_df, ggplot2::aes_string(x="x", y=y_name, color=color_attribute_name, group="clone_id", xend="end_x", yend=end_y_name, size="freq")) +
-    ggplot2::geom_segment(color="black", size=1, na.rm=T)
+    ggplot2::geom_segment(color="black", size=1, na.rm=TRUE)
   
   if(scale_by_node_size){
     p <- p + ggplot2::geom_point() 
@@ -246,14 +242,14 @@ set_clone_origin_d_pos <- function(d_pos_list){
     # t_idx <- 5
     current_time <- time_pts[t_idx]
     current_d <- d_pos_list[[current_time]]
-    current_d <- current_d[order(current_d$x, decreasing = T), ]
+    current_d <- current_d[order(current_d$x, decreasing = TRUE), ]
     current_d <- current_d[order(current_d$node_id), ]
     ### prev time df needs to be based on updated prev, so that positions are consistent
     prev_time <- time_pts[t_idx - 1]
     prev_pos_df <- d_pos_list[[prev_time]]
     prev_pos_df <- prev_pos_df[order(prev_pos_df$node_id), ]
     # og_prev_d <- d_pos_list[[prev_time]]
-    prev_clones <- prev_pos_df$clone_id[prev_pos_df$present_at_time == T]
+    prev_clones <- prev_pos_df$clone_id[prev_pos_df$present_at_time == TRUE]
     
     # available_pos_df <- current_d
     n_pos <- nrow(current_d)
@@ -272,7 +268,7 @@ set_clone_origin_d_pos <- function(d_pos_list){
         new_row$origin <- prev_pos_df$origin[prev_pidx]
         new_row$dendro_y <- prev_pos_df$dendro_y[prev_pidx]
         new_row$time <- prev_pos_df$time[prev_pidx]
-        new_row$present_at_time <- F
+        new_row$present_at_time <- FALSE
         prev_pos_df <- rbind(prev_pos_df, new_row)
         
       }
@@ -334,13 +330,13 @@ match_d_pos <- function(d_pos_list){
     # t_idx <- 5
     current_time <- time_pts[t_idx]
     current_d <- d_pos_list[[current_time]]
-    current_d <- current_d[order(current_d$x, decreasing = T), ]
+    current_d <- current_d[order(current_d$x, decreasing = TRUE), ]
     current_d <- current_d[order(current_d$node_id), ]
     ### prev time df needs to be based on updated prev, so that positions are consistent
     prev_time <- time_pts[t_idx - 1]
     updated_prev_pos_df <- updated_df_h_list[[prev_time]]
     updated_prev_pos_df <- updated_prev_pos_df[order(updated_prev_pos_df$node_id), ]
-    prev_clones <- updated_prev_pos_df$clone_id[updated_prev_pos_df$present_at_time == T]
+    prev_clones <- updated_prev_pos_df$clone_id[updated_prev_pos_df$present_at_time == TRUE]
     
     available_pos_df <- current_d
     n_pos <- nrow(available_pos_df)
@@ -354,7 +350,7 @@ match_d_pos <- function(d_pos_list){
       ### Avoid big jumps by taking care of worst case scenarios first (largest jumps possible)
       pos_dmat <- abs(outer(updated_prev_pos_df$x[idx_in_prev_df], available_pos_df$x[available_pos_df$tree_y == l], "-"))
       max_d <- apply(pos_dmat, 1, max)
-      extant_clone_idx <- extant_clone_idx[order(max_d, decreasing = T)]
+      extant_clone_idx <- extant_clone_idx[order(max_d, decreasing = TRUE)]
       ### Clone existed in previous time step. Change its position based on its updated previous positions
       for(ecidx in extant_clone_idx){
         ecid <- current_d$clone_id[ecidx]
@@ -372,8 +368,8 @@ match_d_pos <- function(d_pos_list){
         }
         closest_idx <- which.min(dx)[1]
         current_d$x[ecidx] <- available_pos_df$x[closest_idx]
-        current_d$pos_available[closest_idx] <- F
-        available_pos_df$pos_available[closest_idx] <- F
+        current_d$pos_available[closest_idx] <- FALSE
+        available_pos_df$pos_available[closest_idx] <- FALSE
       }  
       
       ### Clone is new: Add to updated previous position list, using parent's original position. Give it a left over postion in current time point    
@@ -385,8 +381,8 @@ match_d_pos <- function(d_pos_list){
         current_d$x[ncidx] <- available_pos_df$x[available_pos]
         current_d$y[ncidx] <- available_pos_df$y[available_pos]
         current_d$tree_y[ncidx] <- available_pos_df$tree_y[available_pos]
-        current_d$pos_available[available_pos] <- F
-        available_pos_df$pos_available[available_pos] <- F
+        current_d$pos_available[available_pos] <- FALSE
+        available_pos_df$pos_available[available_pos] <- FALSE
       }
     }
     
@@ -405,14 +401,14 @@ match_d_pos <- function(d_pos_list){
   return(updated_df_h_list)
 }
 
-get_initial_d_pos <- function(mut_freq, clones, parents, attribute_df, attribute_val_name=NULL){
+get_initial_d_pos <- function(mut_freq, clones, parents, attribute_df, fill_name=NULL){
   ### Get positions of nodes for each dendrogram
   ### FOR TESTING ###
   # clones <- to_plot_df$clones
   # parents <- to_plot_df$parents
   # mut_freq <- to_plot_df$freq_mat
   # attribute_df <- to_plot_df$attributes
-  # attribute_val_name <- "fitness"
+  # fill_name <- "fitness"
   ###
   
   attribute_df$clone_id <- clones
@@ -426,11 +422,11 @@ get_initial_d_pos <- function(mut_freq, clones, parents, attribute_df, attribute
   first_time_dendro$tree_y <- 0
   first_time_dendro$dendro_y <- 0
   first_time_dendro$time <- as.numeric(time_pts[1])
-  first_time_dendro$present_at_time <- T
-  first_time_dendro$pos_available <- T
+  first_time_dendro$present_at_time <- TRUE
+  first_time_dendro$pos_available <- TRUE
   first_time_dendro$freq <- mut_freq[1, 1]
   
-  # first_time_dendro <- update_colors(first_time_dendro, attribute_df = first_time_dendro, attribute_val_name = attribute_val_name)
+  # first_time_dendro <- update_colors(first_time_dendro, attribute_df = first_time_dendro, fill_name = fill_name)
   
   attribute_df <- attribute_df[order(attribute_df$origin), ]
   
@@ -445,9 +441,9 @@ get_initial_d_pos <- function(mut_freq, clones, parents, attribute_df, attribute
     at_time_dendro <- get_dendrogram_pos(at_time_df, at_time_df$clone_id, at_time_df$parents)
     at_time_dendro[1,]$x <- 0.5 ### Keep root in middle
     at_time_dendro$time <- as.numeric(time_pts[time_idx])
-    at_time_dendro$present_at_time <- T
-    at_time_dendro$pos_available <- T
-    # at_time_dendro <- update_colors(at_time_dendro, attribute_df = at_time_dendro, attribute_val_name = attribute_val_name)
+    at_time_dendro$present_at_time <- TRUE
+    at_time_dendro$pos_available <- TRUE
+    # at_time_dendro <- update_colors(at_time_dendro, attribute_df = at_time_dendro, fill_name = fill_name)
     pos_df_list[[as.character(unique(at_time_dendro$time))]] <- at_time_dendro
     
     # tp <- ggplot(at_time_dendro, aes(x=x, y=-tree_y, color=as.factor(clone), group=clone, size=size)) +

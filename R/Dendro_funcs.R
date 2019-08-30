@@ -101,10 +101,13 @@ get_dendrogram_pos <- function(attr_df, clones_for_d, parents_for_d){
   
 }
 
-filter_edges_at_time <- function(size_df, clones, parents, time_pt=NULL, attribute_df=NULL, clone_id_col_in_att_df="clone_id", threshold=0.01, data_type="size",  fill_gaps_in_size = F, test_links=T){
+filter_edges_at_time <- function(size_df, clones, parents, time_pt=NULL, attribute_df=NULL, threshold=0.01, data_type="size",  fill_gaps_in_size = FALSE, test_links=TRUE, rescale_after_thresholding=FALSE){
+  ### FOR TESTING ###
+  # clones <- clone_df$CloneID
+  # parents <- clone_df$ParentID
+  # size_df
   
-  origin_times <- as.numeric(apply(size_df, 1, function(x){which(x>0)[1]}))
-  
+  ####
   if(any(duplicated(clones))){
     warning("Some clones have the same ID. Each clone should have a unique ID")
   }
@@ -149,6 +152,7 @@ filter_edges_at_time <- function(size_df, clones, parents, time_pt=NULL, attribu
   colnames(freq_mat) <- colnames(size_df)
   row.names(freq_mat) <- clones
   freq_array <- freq_mat[,time_pt]
+  origin_times <- as.numeric(apply(freq_mat, 1, function(x){which(x>0)[1]}))
   
   
   ### Possible that a clone was recorded, but didn't exist at this time point
@@ -169,6 +173,10 @@ filter_edges_at_time <- function(size_df, clones, parents, time_pt=NULL, attribu
     clones <- clones[filtered_idx]
     origin_times <- origin_times[filtered_idx]
     
+    if(rescale_after_thresholding){
+      freq_mat <- rescale_frequencies(size_df, clones, parents, filtered_idx, data_type)
+    }
+    
     if(!is.null(attribute_df)){
       attribute_df <- attribute_df[filtered_idx, ]
     }
@@ -186,7 +194,7 @@ filter_edges_at_time <- function(size_df, clones, parents, time_pt=NULL, attribu
   attribute_df <- attribute_df[ordered_idx, ]
   attribute_df$node_id <- seq(1, length(clones))
   
-  # clone_col_idx <- as.numeric(which(sapply(colnames(attribute_df), FUN = function(x){all(clones %in% as.character(unique(attribute_df[,x])))})==T))
+  # clone_col_idx <- as.numeric(which(sapply(colnames(attribute_df), FUN = function(x){all(clones %in% as.character(unique(attribute_df[,x])))})==TRUE))
   # 
   # if(length(clone_col_idx) > 1){
   #   #### If all clones in pos df are also parents, and there are both parent and clone ids in attribute_df, then more than 1 column will considered the clone_id column in attribute_df
@@ -204,11 +212,11 @@ filter_edges_at_time <- function(size_df, clones, parents, time_pt=NULL, attribu
   #   print("do not know column in attribute_df that contains clone IDs. Please check the clone_id_col_in_att_df argument or set the clone ID column in attribute_df to be 'clone_id'")
   # }
   
-  clone_col_idx <- which(colnames(attribute_df)==clone_id_col_in_att_df)
-  if(length(clone_col_idx) == 0 & clone_id_col_in_att_df != "clone_id" & ! "clone_id" %in% colnames(attribute_df)){
-    print("do not know column in attribute_df that contains clone IDs. Please check the clone_id_col_in_att_df argument or set the clone ID column in attribute_df to be 'clone_id'")
-  }
-  colnames(attribute_df)[clone_col_idx] <- "clone_id"
+  # clone_col_idx <- which(colnames(attribute_df)==clone_id_col_in_att_df)
+  # if(length(clone_col_idx) == 0 & clone_id_col_in_att_df != "clone_id" & ! "clone_id" %in% colnames(attribute_df)){
+  #   print("do not know column in attribute_df that contains clone IDs. Please check the clone_id_col_in_att_df argument or set the clone ID column in attribute_df to be 'clone_id'")
+  # }
+  # colnames(attribute_df)[clone_col_idx] <- "clone_id"
   
   
   return(list("clones"=clones, "parents"=parents, "attributes"=attribute_df))
@@ -336,64 +344,69 @@ get_elbow_links <- function(dendro_df){
 #' attribute_elbow_links <- attribute_dendro_df$links
 #' attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links, scale_by_node_size = TRUE)
 #' @export
-get_evogram <- function(size_df, clones, parents,  fill_value=NULL, fill_range = NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = F, test_links=T, link_type="elbow", shuffle_colors=F){
+get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pt=NULL, clone_cmap=NULL, threshold=0.01, data_type="size", fill_gaps_in_size = FALSE, test_links=TRUE, link_type="elbow", rescale_after_thresholding=FALSE, shuffle_colors=FALSE){
   # ## FOR TESTING ###
   # Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values#
   # data("example.easy.wide")
   # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
   # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide)))))
   # attribute_col_idx <- suppressWarnings(which(is.na(as.numeric(colnames(example.easy.wide)))))
-  # size_df <- example.easy.wide[, time_col_idx]
-  # parents <- example.easy.wide$parent
-  # clones <- example.easy.wide$clone
+  # size_df <-size_df #example.easy.wide[, time_col_idx]
+  # parents <- clone_df$ParentID  #example.easy.wide$parent
+  # clones <- clone_df$CloneID #example.easy.wide$clone
+  # fill_value <- clone_df$Passengers
   # threshold <- 0.02
   # clone_cmap <- "rainbow_soft"
   # size_df <- size_df
   # time_pt <- NULL
   # data_type <- "size"
-  # scale_by_sizes_at_time <- F
-  # fill_gaps_in_size <- F
-  # test_links <- T
+  # scale_by_sizes_at_time <- FALSE
+  # fill_gaps_in_size <- FALSE
+  # test_links <- TRUE
   # threshold <- 0.01
   # link_type <- "elbow"
-  # fill_value <- NULL
   # # ###
   
   
+  # if(!is.null(fill_value)){
+  #   fill_name <- get_argname(fill_value)
+  #   attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
+  #   attribute_df[fill_name] <- fill_value
+  # }else{
+  #   attribute_df <- NULL
+  #   fill_name <- NULL
+  # }
+  
   if(!is.null(fill_value)){
-    attribute_val_name <- deparse(substitute(fill_value))
-    if(grepl("\\$", attribute_val_name)){
-      ### Value was passed in as a column in a dataframe
-      attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
-    }else if(grepl("\\[.*\\]", attribute_val_name)){
-      ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
-      attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
+    fill_name <- colnames(fill_value) ### Value was passed in  using a string to get the column, e.g. df[fill_name]
+    if(is.null(fill_name)){
+      paresed_fill_name <- deparse(substitute(fill_value))
+      fill_name <- get_argname(paresed_fill_name)
     }
-    
-    attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
-    attribute_df[attribute_val_name] <- fill_value
+    attribute_df <- data.frame("clone_id"=clones)
+    attribute_df[fill_name] <- fill_value
   }else{
     attribute_df <- NULL
-    attribute_val_name <- NULL
+    fill_name <- NULL
   }
-  
-  if(!is.null(attribute_val_name)){
-    attribute_vals <- attribute_df[,attribute_val_name]
+  if(!is.null(fill_name)){
+    fill_value <- attribute_df[, fill_name]
     if(is.null(fill_range)){
-      fill_range <- range(attribute_vals, na.rm = T)
+      fill_range <- range(fill_value, na.rm = TRUE)
     }
   }
-  
+
   ### Filter info ###
-  to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = time_pt, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links)
+  to_plot_df <- filter_edges_at_time(size_df = size_df, clones = clones, parents = parents, time_pt = time_pt, attribute_df = attribute_df,  threshold = threshold, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links, rescale_after_thresholding=rescale_after_thresholding)
   ### Get dendrogram positions and attributes ###
+
   dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
   if(!is.null(attribute_df)){
     attribute_df <- to_plot_df$attributes
   }
   
-  dendro_pos <- update_colors(evo_freq_df = dendro_pos, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name, shuffle_colors=shuffle_colors)
-  
+  dendro_pos <- update_colors(evo_freq_df = dendro_pos, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, fill_name=fill_name, shuffle_colors=shuffle_colors)
+
   ### Add line segments: Elbow or diagonal ###
   if(link_type == "straight"){
     link_df <- get_straight_links(dendro_pos)
@@ -449,17 +462,17 @@ get_evogram <- function(size_df, clones, parents,  fill_value=NULL, fill_range =
 #' attr_parents <- example.easy.wide.with.attributes$parent
 #' attr_clones <- example.easy.wide.with.attributes$clone
 #' fitness <- example.easy.wide.with.attributes$fitness
-#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, fill_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
 #' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 #' attribute_tree_pos <- attribute_dendro_df$dendro_pos
 #' attribute_elbow_links <- attribute_dendro_df$links
 #' attribute_tree_elbow_p <- plot_evogram(attribute_tree_pos, attribute_elbow_links)
 #' @export
-plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, scale_by_node_size=T, orientation="td", depth="origin"){
+plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, scale_by_node_size=TRUE, orientation="td", depth="origin"){
   ### FOR TESTING ### 
-  # dendro_pos_df <- attribute_dendro_df$dendro_pos
-  # link_df <- attribute_dendro_df$links
-  # scale_by_node_size = T
+  # dendro_pos_df <- hal_info$dendro_pos
+  # link_df <- hal_info$dendro_links
+  # scale_by_node_size = TRUE
   # orientation="lr" #= top_down, "lr" left right
   # depth <- "origin"
   # fill_range <- NULL
@@ -488,18 +501,19 @@ plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, s
     color_attribute_name <- "plot_color"
   }else{
     if(is.null(fill_range)){
-      fill_range <- range(dendro_pos_df[, color_attribute_name], na.rm = T)  
+      fill_range <- range(dendro_pos_df[, color_attribute_name], na.rm = TRUE)  
     }
   }
-  
+  # unique(link_df$clone_id)
+  # unique(dendro_pos_df$clone_id)
   if(link_type == "straight"){
     p <- ggplot2::ggplot(dendro_pos_df, ggplot2::aes_string(x="x", y=y_name, color=color_attribute_name, size="freq")) +
-      ggplot2::geom_segment(data=link_df, ggplot2::aes_string(x="x", y=y_name, xend="end_x", yend=end_y_name), inherit.aes = F) #+
+      ggplot2::geom_segment(data=link_df, ggplot2::aes_string(x="x", y=y_name, xend="end_x", yend=end_y_name), inherit.aes = FALSE) #+
       # ggplot2::scale_color_identity()
     
   }else{
     p <-  ggplot2::ggplot(dendro_pos_df, ggplot2::aes_string(x="x", y=y_name, color=color_attribute_name, size="freq")) +
-      ggplot2::geom_path(data=link_df, ggplot2::aes_string(x="x", y=y_name, group="clone_id"), inherit.aes = F) #+
+      ggplot2::geom_path(data=link_df, ggplot2::aes_string(x="x", y=y_name, group="clone_id"), inherit.aes = FALSE) #+
       # ggplot2::scale_color_identity()
   }
   
@@ -517,6 +531,7 @@ plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, s
   }else{
     y_title <- "Level"  
   }
+  
   
   if(scale_by_node_size){
     p <- p + ggplot2::geom_point() 
