@@ -93,7 +93,7 @@
 #'default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
 #'}
 #'@export
-get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6, rescale_after_thresholding=F, shuffle_colors=F){
+get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = FALSE, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = FALSE, test_links=TRUE, add_origin=FALSE, tm_frac=0.6, rescale_after_thresholding=FALSE, shuffle_colors=FALSE){
   # # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
   # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
@@ -110,38 +110,43 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   # size_df <- clone_df[time_pts]
   # fill_value <- clone_df$Drivers
   
+  ### HAL
+  # size_df <- hal_info$size_df
+  # clones <- hal_info$clones
+  # parents <- hal_info$parents
+  # fill_value <- NULL
   
   # threshold <- 0.01
   # clone_cmap <- NULL
   # time_pts <- NULL
   # fill_range <-  NULL
-  # scale_by_sizes_at_time <- F
+  # scale_by_sizes_at_time <- FALSE
   # interpolation_steps <- 10
-  # fill_gaps_in_size <- F
-  # test_links <- T
+  # fill_gaps_in_size <- FALSE
+  # test_links <- TRUE
   # data_type <- "size"
   # interp_method <- "monoH.FC"# "bezier"
-  # add_origin <- F
+  # add_origin <- FALSE
   # tm_frac <- 0.6
-  # # ###
+  # rescale_after_thresholding <- FALSE 
+  # shuffle_colors <- FALSE
+  # # # ###
   if(!is.null(fill_value)){
-    attribute_val_name <- deparse(substitute(fill_value))
-    if(grepl("\\$", attribute_val_name)){
-      ### Value was passed in as a column in a dataframe
-      attribute_val_name <- strsplit(attribute_val_name, split = "$", fixed = T)[[1]][2]
-    }else if(grepl("\\[.*\\]", attribute_val_name)){
-      ### Value was passed in  using a string to get the column, e.g. df[attribute_val_name]
-      attribute_val_name <- strsplit(attribute_val_name, '\\"')[[1]][2]
+    fill_name <- colnames(fill_value) ### Value was passed in as a single column dataframe
+    if(is.null(fill_name)){
+    paresed_fill_name <- deparse(substitute(fill_value))
+    print(paresed_fill_name)
+    fill_name <- get_argname(paresed_fill_name)
+    print(fill_name)
     }
     
-    # attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
     attribute_df <- data.frame("clone_id"=clones)
-    attribute_df[attribute_val_name] <- fill_value
+    attribute_df[fill_name] <- fill_value
   }else{
     attribute_df <- NULL
-    attribute_val_name <- NULL
+    fill_name <- NULL
   }
-  
+
   og_time_pts <- colnames(size_df)
   to_plot_df <- filter_data(size_df = size_df, clones = clones, parents = parents, time_pts = time_pts, attribute_df = attribute_df, threshold = threshold, scale_by_sizes_at_time = scale_by_sizes_at_time, data_type = data_type,  fill_gaps_in_size = fill_gaps_in_size, test_links=test_links, add_origin=add_origin, tm_frac=tm_frac, rescale_after_thresholding=rescale_after_thresholding)
   clones <- to_plot_df$clones
@@ -149,16 +154,16 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   freq_mat <- to_plot_df$freq_mat
   max_mutation_size <- to_plot_df$max_size
   time_pt_names <- to_plot_df$og_colnames
-  time_pt_df <- data.frame("x"=colnames(freq_mat), "Time_label"=time_pt_names)
+  time_pt_df <- data.frame("x"=as.numeric(colnames(freq_mat)), "Time_label"=time_pt_names) ### Have to make x numeric. Otherwise, float column names are converted to strings
 
   if(!is.null(attribute_df)){
     attribute_df <- to_plot_df$attributes
   }
 
-  if(!is.null(attribute_val_name)){
-    fill_value <- attribute_df[,attribute_val_name]
+  if(!is.null(fill_name)){
+    fill_value <- attribute_df[,fill_name]
     if(is.null(fill_range)){
-      fill_range <- range(fill_value, na.rm = T)
+      fill_range <- range(fill_value, na.rm = TRUE)
     }
   }
   
@@ -191,7 +196,7 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   }
   
   ### Supply attribute name since using deparse inside get_evofreq will return fill_value for the name of the attribute
-  plot_pos_df <- update_colors(evo_freq_df = plot_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, attribute_val_name=attribute_val_name, shuffle_colors = shuffle_colors)
+  plot_pos_df <- update_colors(evo_freq_df = plot_pos_df, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, fill_name=fill_name, shuffle_colors = shuffle_colors)
 
   if(!scale_by_sizes_at_time){
     plot_pos_df$y <- plot_pos_df$y*max_mutation_size
@@ -211,8 +216,7 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
     plot_pos_df$x[which(plot_pos_df$x==closest_x)] <- as.numeric(tpt)
   }
   
-  
-  plot_pos_df <- merge(plot_pos_df, time_pt_df, by="x", all=T)
+  plot_pos_df <- merge(plot_pos_df, time_pt_df, by="x", all=TRUE)
   plot_pos_df <- plot_pos_df[order(plot_pos_df$row_id), ]
   
   return(plot_pos_df)
@@ -221,8 +225,8 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
 scale_values <- function(x, out_range=c(0, 1)){
   a <- min(out_range)
   b <- max(out_range)
-  in_min <- min(x, na.rm = T)
-  in_max <- max(x, na.rm = T)
+  in_min <- min(x, na.rm = TRUE)
+  in_max <- max(x, na.rm = TRUE)
   
   scaled_x <- (b-a)*(x-in_min)/(in_max - in_min) + a
   
@@ -297,7 +301,7 @@ check_for_missing_links_fnx <- function(clones, parents){
   return("No missing links")
 }
 
-check_and_update_edges <- function(clones, parents, check_for_missing_links=T){
+check_and_update_edges <- function(clones, parents, check_for_missing_links=TRUE){
   ##### FOR TESTING ###
   # clones <- clone_list
   # parents <- parent_list
@@ -343,8 +347,8 @@ check_freq_mat <- function(freq_mat, clones, parents){
     }
     children_df <- freq_mat[children_idx, ]
     parent_greater_than_children <- apply(children_df, 1, function(x){all(cln_freq>=x)})
-    if(all(parent_greater_than_children)==F){
-      too_big_idx <- which(parent_greater_than_children==F)
+    if(all(parent_greater_than_children)==FALSE){
+      too_big_idx <- which(parent_greater_than_children==FALSE)
       clones_too_big <- clones[too_big_idx]
       stop(paste(cln, "has descendent mutations greater than that are greater than it's size. Descendents are:", clones_too_big))
     }
@@ -530,7 +534,7 @@ order_clones_at_time <- function(clones_at_time, parents, clones){
       n_ancestors_in_t[ct_i] <- length(ancestor_idx)
     }
   }
-  new_order <- order(n_ancestors_in_t, decreasing = F)
+  new_order <- order(n_ancestors_in_t, decreasing = FALSE)
   clones_at_time_ordered <- clones_at_time[new_order]
   
   return(clones_at_time_ordered)
@@ -609,7 +613,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
   n_clones <- length(unique_clones)
   
   all_x <- unique(sparse_pos_df$x)
-  x_range <- range(all_x, na.rm = T)
+  x_range <- range(all_x, na.rm = TRUE)
   all_new_x <- seq(x_range[1], x_range[2], length.out = length(all_x)*n_intermediate_steps)
 
   pb <- utils::txtProgressBar(min = 0, max = n_clones, style = 3)
@@ -623,7 +627,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
     
     if(nx >= 4){
       
-      forward_idx <- which(duplicated(clone_pos_df$x)==F)
+      forward_idx <- which(duplicated(clone_pos_df$x)==FALSE)
       forward_df <- clone_pos_df[forward_idx,]
       ###GO BACK TO THIS??
       # new_x <- seq(min(forward_df$x), max(forward_df$x), length.out = length(forward_df$x)*n_intermediate_steps)
@@ -650,7 +654,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
         
       }else if(interp_method=="bezier_curve_fit"){
         bezier_forward_x <- seq(0, 1, length.out = length(new_x))
-        bz_forward_fit <- suppressWarnings(bezier::bezierCurveFit(as.matrix(forward_df[,c("x","y")]), na.fill = T, maxiter=500, max.rse.percent.change = 0.2, fix.start.end = T))
+        bz_forward_fit <- suppressWarnings(bezier::bezierCurveFit(as.matrix(forward_df[,c("x","y")]), na.fill = TRUE, maxiter=500, max.rse.percent.change = 0.2, fix.start.end = TRUE))
         forward_bezier_points <- bezier::bezier(t=bezier_forward_x, p=bz_forward_fit$p)
         new_forward <- forward_bezier_points[, 2]
         new_forward_x <- forward_bezier_points[, 1]
@@ -661,7 +665,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
       }
       
       
-      reverse_idx <- which(duplicated(clone_pos_df$x)==T)
+      reverse_idx <- which(duplicated(clone_pos_df$x)==TRUE)
       reverse_df <- clone_pos_df[reverse_idx,]
       
       if(interp_method %in% c("fmm", "periodic", "natural", "monoH.FC", "hyman")){
@@ -677,7 +681,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
         new_reverse_x <- rev(reverse_bezier_points[, 1])
       }else if(interp_method=="bezier_curve_fit"){
         bezier_reverse_x <- seq(0, 1, length.out = length(new_x))
-        bz_reverse_fit <- suppressWarnings(bezier::bezierCurveFit(as.matrix(reverse_df[seq(nrow(reverse_df), 1),c("x","y")]), na.fill = T, maxiter=500, max.rse.percent.change = 0.2, fix.start.end = T))
+        bz_reverse_fit <- suppressWarnings(bezier::bezierCurveFit(as.matrix(reverse_df[seq(nrow(reverse_df), 1),c("x","y")]), na.fill = TRUE, maxiter=500, max.rse.percent.change = 0.2, fix.start.end = TRUE))
         reverse_bezier_points <- bezier::bezier(t=bezier_reverse_x, p=bz_reverse_fit$p)
         new_reverse <- reverse_bezier_points[, 2]
         new_reverse_x <- rev(reverse_bezier_points[, 1]) 
@@ -838,7 +842,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' anim_save("evofreq_movie.gif", movie_p)
 #' }
 #'@export
-plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=NULL, bw=0.05, bc="grey75", show_axes=T, fill_range=NULL){
+plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=NULL, bw=0.05, bc="grey75", show_axes=TRUE, fill_range=NULL){
   
   ### FOR TESTING ###
   # n_time_pts <- NULL
@@ -846,10 +850,8 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
   # end_time <-  NULL
   # bw <- 0.05
   # bc <- "grey75"
-  # freq_frame <- attribute_freq_frame
+  # freq_frame <- hal_plot_df
   #####
-  
-  
   
   unique_time_pts <- unique(freq_frame$x)
   if(is.null(n_time_pts)){
@@ -871,10 +873,10 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
     color_attribute_name <- "plot_color"
   }else{
     if(is.null(fill_range)){
-      fill_range <- range(view_df[, color_attribute_name], na.rm = T)  
+      fill_range <- range(view_df[, color_attribute_name], na.rm = TRUE)  
     }
     
-  #   color_df <-  view_df[duplicated(view_df$plot_color)==F, ]
+  #   color_df <-  view_df[duplicated(view_df$plot_color)==FALSE, ]
   #   color_df <- color_df[order(color_df[color_attribute_name]), ]
   #   colorbar_colors <- color_df$plot_color
   #   
@@ -883,15 +885,17 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
   
   # all_x_maxs_at_time <- aggregate(x ~ clone_id, data=subset(view_df, extinction_time >= end_time), FUN=max)
   # max_x <- min(all_x_maxs_at_time$x)  
-  
+  # view_df$x <- as.numeric(view_df$x)
   time_pts_df <- unique(view_df[complete.cases(view_df["Time_label"]), ][c("x", "Time_label")])
   time_pts_df$x <-  as.numeric(as.character(time_pts_df$x))
+  time_pts_df <- time_pts_df[order(time_pts_df$x), ]
   time_pts_df <- subset(time_pts_df, x > 0)
   time_pts_df$Time_label <-  as.character(time_pts_df$Time_label)
-  time_pts_df$Time_label[1] <- "0"
+  # time_pts_df$Time_label <-  as.character(as.numeric(time_pts_df$Time_label))
+
+  # time_pts_df$Time_label[1] <- "0" ### TODO Why is this being set to 0?
   
   y_label <- unique(freq_frame$y_label)
-  
   
   ggevodyn <- ggplot2::ggplot(view_df, ggplot2::aes_string(x="x", y="y", group="draw_order", fill=color_attribute_name)) +
     ggplot2::geom_polygon(size=bw, color=bc) +
@@ -899,9 +903,7 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
     ggplot2::xlab("Time") +
     ggplot2::theme_classic() +
     ggplot2::scale_x_continuous(breaks=as.numeric(as.character(time_pts_df$x)), labels=as.character(time_pts_df$Time_label)) +
-    # ggplot2::scale_x_continuous(breaks=as.numeric(as.character(time_pt_df$x)), labels=as.character(time_pt_df$Time_label)) +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
-    # ggplot2::coord_cartesian(xlim=c(0, max_x), clip = "on", expand="F")
   
   if(color_attribute_name=="plot_color"){
     ggevodyn <- ggevodyn + ggplot2::scale_fill_identity()
@@ -936,7 +938,7 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
 # pos_from_long_df <- get_evofreq(size_df_from_long, clones_from_long, parents_from_long)
 # evo_p_from_long <- plot_evofreq(pos_from_long_df)
 #'@export
-long_to_wide_freq_ready <- function(edges_df, long_pop_sizes_df, time_col_name, clone_col_name, parent_col_name, size_col_name, fill_gaps_in_size=F){
+long_to_wide_freq_ready <- function(edges_df, long_pop_sizes_df, time_col_name, clone_col_name, parent_col_name, size_col_name, fill_gaps_in_size=FALSE){
   long_pop_sizes_df <- as.data.frame(long_pop_sizes_df)
   unique_times <- unique(long_pop_sizes_df[,time_col_name])
   unique_times <- unique_times[order(unique_times)]
@@ -1055,7 +1057,7 @@ long_to_wide_freq_ready <- function(edges_df, long_pop_sizes_df, time_col_name, 
 #' evofreq_plot <- plot_evofreq(freq_frame)
 #' clone_labels <- get_evofreq_labels(freq_frame, extant_only=FALSE)
 #' 
-#' ### Set evofreq_plot and apply_labels = T to get a labeled plot back
+#' ### Set evofreq_plot and apply_labels = TRUE to get a labeled plot back
 #' get_evofreq_labels(freq_frame, extant_only=FALSE, evofreq_plot = evofreq_plot, apply_labels = TRUE)
 #' @export
 get_evofreq_labels <- function(freq_frame, apply_labels=FALSE, custom_label_text=NULL, evofreq_plot=NULL, clone_list=NULL, extant_only=FALSE, line_color="darkgrey", adj.factor=10){
@@ -1120,12 +1122,12 @@ get_evofreq_labels <- function(freq_frame, apply_labels=FALSE, custom_label_text
   }
   
   if(apply_labels & !is.null(evofreq_plot) & is.null(custom_label_text)){
-    evo_freq_p_labeled <- evofreq_plot + geom_segment(data = position_df, aes(x=position_df$x,xend=position_df$x,y=position_df$y,yend=position_df$y_plotValue), color=line_color, size=1, inherit.aes = F) +
-      geom_label(data=position_df, aes(x=position_df$x, y=position_df$y_plotValue, fill=position_df$plot_color, label=paste("Clone",position_df$clone_id)), color="white", inherit.aes = F)
+    evo_freq_p_labeled <- evofreq_plot + geom_segment(data = position_df, aes(x=position_df$x,xend=position_df$x,y=position_df$y,yend=position_df$y_plotValue), color=line_color, size=1, inherit.aes = FALSE) +
+      geom_label(data=position_df, aes(x=position_df$x, y=position_df$y_plotValue, fill=position_df$plot_color, label=paste("Clone",position_df$clone_id)), color="white", inherit.aes = FALSE)
     return(evo_freq_p_labeled)
   } else if(apply_labels & !is.null(evofreq_plot) & !is.null(custom_label_text)) {
-    evo_freq_p_labeled <- evofreq_plot + geom_segment(data = position_df, aes(x=position_df$x,xend=position_df$x,y=position_df$y,yend=position_df$y_plotValue), color=line_color, size=1, inherit.aes = F) +
-      geom_label(data=position_df, aes(x=position_df$x, y=position_df$y_plotValue, fill=position_df$plot_color, label=custom_label_text), color="white", inherit.aes = F)
+    evo_freq_p_labeled <- evofreq_plot + geom_segment(data = position_df, aes(x=position_df$x,xend=position_df$x,y=position_df$y,yend=position_df$y_plotValue), color=line_color, size=1, inherit.aes = FALSE) +
+      geom_label(data=position_df, aes(x=position_df$x, y=position_df$y_plotValue, fill=position_df$plot_color, label=custom_label_text), color="white", inherit.aes = FALSE)
     return(evo_freq_p_labeled)
   } else if(apply_labels){
     # No evofreq_plot
@@ -1135,7 +1137,7 @@ get_evofreq_labels <- function(freq_frame, apply_labels=FALSE, custom_label_text
   }
 }
 
-filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, threshold=0.01, scale_by_sizes_at_time = F, data_type="size", fill_gaps_in_size = F, test_links=T, add_origin=F, tm_frac=0.6, rescale_after_thresholding=F){
+filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NULL, threshold=0.01, scale_by_sizes_at_time = FALSE, data_type="size", fill_gaps_in_size = FALSE, test_links=TRUE, add_origin=FALSE, tm_frac=0.6, rescale_after_thresholding=FALSE){
   # data("example.easy.wide.with.attributes")
   # ## Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
   # time_col_idx <- suppressWarnings(which(! is.na(as.numeric(colnames(example.easy.wide.with.attributes)))))
@@ -1151,17 +1153,17 @@ filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   # # clones <- mut_df$clone
   # # parents <- mut_df$parent
   # time_pts <- NULL
-  # attribute_val_name <- "fitness" #"new_antigenicity"
+  # fill_name <- "fitness" #"new_antigenicity"
   # attribute_df <- attribute_df
   # data_type <- "size"
   # data_type <- "size"
-  # scale_by_sizes_at_time <- F
+  # scale_by_sizes_at_time <- FALSE
   # interpolation_steps <- 10
-  # fill_gaps_in_size <- F
-  # test_links <- T
+  # fill_gaps_in_size <- FALSE
+  # test_links <- TRUE
   # threshold <- 0.01
   # fill_range <- NULL
-  # add_origin <- T
+  # add_origin <- TRUE
   # tm_frac <- 0.6
   #####
   
@@ -1272,7 +1274,7 @@ filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   
   ### Get idx of clones that are extant after subsetting timepoints ###
   origin_times <- apply(freq_mat, 1, function(x){which(x>0)[1]})
-  idx_after_time_thresh <- which(is.na(origin_times)==F)
+  idx_after_time_thresh <- which(is.na(origin_times)==FALSE)
   freq_mat <- freq_mat[idx_after_time_thresh, ]
   
   if(is.null(nrow(freq_mat))){ 
@@ -1300,22 +1302,25 @@ filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
     origin_times <- origin_times[filtered_idx]
     
     if(rescale_after_thresholding){
-      if(data_type=="size"){
-        freq_df <- get_mutation_df(size_df[filtered_idx, ], clones = clones, parents = parents)
-        freq_mat <- as.matrix(freq_df)
-      }else{
-        freq_mat <- as.matrix(freq_mat[filtered_idx,])
-      }
-      
-      
-      max_mutation_size <- max(freq_mat)
-      if(scale_by_sizes_at_time){
-        max_sizes_at_each_time <- apply(freq_mat, 2, max)
-        freq_mat <- sweep(freq_mat, MARGIN = 2, max_sizes_at_each_time, FUN = "/")
-        
-      }else{
-        freq_mat <- freq_mat/max_mutation_size
-      }
+      freq_mat <- rescale_frequencies(size_df, clones, parents, filtered_idx, data_type, scale_by_sizes_at_time)
+      # if(data_type=="size"){
+      #   sink("/dev/null") ### Suppress output
+      #   freq_df <- get_mutation_df(size_df[filtered_idx, ], clones = clones, parents = parents)
+      #   sink()
+      #   freq_mat <- as.matrix(freq_df)
+      # }else{
+      #   freq_mat <- as.matrix(freq_mat[filtered_idx,])
+      # }
+      # 
+      # 
+      # max_mutation_size <- max(freq_mat)
+      # if(scale_by_sizes_at_time){
+      #   max_sizes_at_each_time <- apply(freq_mat, 2, max)
+      #   freq_mat <- sweep(freq_mat, MARGIN = 2, max_sizes_at_each_time, FUN = "/")
+      #   
+      # }else{
+      #   freq_mat <- freq_mat/max_mutation_size
+      # }
     }
     
     if(is.null(nrow(freq_mat))){ 
@@ -1341,7 +1346,7 @@ filter_data <- function(size_df, clones, parents, time_pts=NULL, attribute_df=NU
   attribute_df <- attribute_df[ordered_idx, ]
   freq_mat <- freq_mat[ordered_idx, ]
   # 
-  # clone_col_idx <- as.numeric(which(sapply(colnames(attribute_df), FUN = function(x){all(clones %in% as.character(unique(attribute_df[,x])))})==T))
+  # clone_col_idx <- as.numeric(which(sapply(colnames(attribute_df), FUN = function(x){all(clones %in% as.character(unique(attribute_df[,x])))})==TRUE))
   # 
   # if(length(clone_col_idx) > 1){
   #   #### If all clones in pos df are also parents, and there are both parent and clone ids in attribute_df, then more than 1 column will considered the clone_id column in attribute_df
@@ -1380,7 +1385,7 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
   
   origin_times <- apply(mut_freq, 1, FUN = function(x){which(x>0)[1]})
   origin_at_t1_idx <- which(origin_times==1)
-  size_order <- order(mut_freq[origin_at_t1_idx, 1], decreasing = T)
+  size_order <- order(mut_freq[origin_at_t1_idx, 1], decreasing = TRUE)
   origin_at_t1_idx <- origin_at_t1_idx[size_order]
   
   nudge_val <- floor(nx/(length(origin_at_t1_idx)+1))
@@ -1412,3 +1417,137 @@ add_origin_mat <- function(mut_freq, tm_frac=0.6){
   
 }
 
+
+#' @title read.HAL
+#' @param path_to_file String defining the location of the data output from HAL
+#' @param fill_name Optional string defining which attribute to color by. See \code{\link{update_colors}} for more details. 
+#' @param get_evofreq_df Boolean defining if a freq_frame and evofreq should be returned. 
+#' @param get_evofreq_arg_list List containing additional arguments passed to \code{\link{get_evofreq}}
+#' @param get_dendogram_df Boolean defining if the dataframes to plot evograms and the evogram itself should be returned.
+#' @param get_evogram_arg_list List containing additional arguments passed to \code{\link{get_evogram}}
+#' @return List containing information get and plot Muller plots and dendrograms
+#' 
+#' @examples
+#' ## Default is to return the plot and all info needed to create new ones
+#' hal_info <- read.HAL(path_to_hal_results)
+#' print(hal_info$evofreq_plot)
+#' 
+#' ### Can define column to use for coloring
+#' hal_info <- read.HAL(path_to_hal_results, fill_name = "Passengers")
+#' print(hal_info$evofreq_plot)
+#' 
+#' ### The information needed to create new plots is also returned. This can be useful if you want to change colors
+#' updated_plot <- update_colors(hal_info$freq_frame, hal_info$clones, hal_info$attributes$Drivers)
+#' plot_evofreq(updated_plot)
+#' 
+#' ### Can use a list to pass additional arguments to get_evofreq
+#' evofreq_args <- list("threshold"=0.0, "clone_cmap"="plasma")
+#' hal_info <- read.HAL(path_to_hal_results, fill_name = "Passengers", get_evofreq_arg_list = evofreq_args)
+#' print(hal_info$evofreq_plot)
+#' 
+#' ### Use the same approach to get dendrograms by setting  get_dendogram_df = T.  Set return_dendrogram_plot = T to get the dendrogram plot too
+#' evogram_args <- list("threshold"=0.0, "clone_cmap"="plasma")
+#' hal_info <- read.HAL(path_to_hal_results, fill_name = "Drivers", get_evogram_arg_list = evofreq_args, get_dendogram_df=T)
+#' print(hal_info$evogram_plot)
+#' @export
+read.HAL <- function(path_to_file, fill_name=NULL, get_evofreq_df=TRUE, get_evofreq_arg_list=list(), get_dendogram_df=FALSE,  get_evogram_arg_list=list()){
+  ## FOR TESTING ###
+  # path_to_file <- f
+  # fill_name <- "Drivers"
+  # get_evofreq_arg_list <- list("threshold"=0.1, "clone_cmap"="jet")
+  # return_evofreq_plot <- TRUE
+  # get_dendogram_df <- TRUE
+  # get_evofreq_arg_list = evofreq_args
+  # get_evogram_arg_list <- evofreq_args
+  # return_dendrogram_plot = TRUE
+  ###
+  
+  clone_df <- read.csv(path_to_file, check.names = FALSE, stringsAsFactors = FALSE)  
+  df_cols <- colnames(clone_df)
+  time_col_idx <- suppressWarnings(which(!is.na(as.numeric(df_cols))))
+  time_cols <- df_cols[time_col_idx]
+  size_df <- clone_df[, time_cols]
+  
+  return_list <- list("clones"=clone_df$CloneID, "parents"=clone_df$ParentID, "size_df"=size_df)
+  
+  hal_args <- list("size_df" = size_df, "clones"=clone_df$CloneID, "parents"=clone_df$ParentID)
+  
+  attribute_col_idx <- which(!df_cols %in% c(time_cols, "CloneID", "ParentID"))
+  if(length(attribute_col_idx) > 0){
+    attribute_df <- cbind(data.frame("CloneID"=clone_df$CloneID),clone_df[, attribute_col_idx])
+    return_list[["attributes"]] <- attribute_df
+    if(!is.null(fill_name)){
+      hal_args[["fill_value"]] <- clone_df[fill_name]
+    }
+    
+  }
+  
+  ### Get info to plot evofreq
+  if(get_evofreq_df){
+    freq_df <- do.call(get_evofreq, c(hal_args, get_evofreq_arg_list))  
+    return_list[["freq_frame"]] <- freq_df
+    return_list[["evofreq_plot"]] <- plot_evofreq(freq_df)
+  }
+  
+  
+  ### Get info to plot evogram
+  if(get_dendogram_df){
+    dendro_df <- do.call(get_evogram, c(hal_args, get_evogram_arg_list))
+    return_list[["dendro_links"]] <- dendro_df$links
+    return_list[["dendro_pos"]] <- dendro_df$dendro_pos
+    return_list[["evogram_plot"]] <- plot_evogram(dendro_df$dendro_pos, dendro_df$links)
+  }
+  
+  return(return_list) 
+}
+
+get_argname <- function(paresed_name, default_name = "fill_value"){
+  ### argname isn't from a dataframe
+
+  dollar_in <- grepl("\\$", paresed_name)
+  bracket_in <- grepl('\\[', paresed_name)
+  if(dollar_in == FALSE & bracket_in == FALSE){
+    if( grepl(',', paresed_name)){
+      ## Value passed in as an array. I.e. c(1,2,3...)
+      return(default_name)
+    }else{
+      return(paresed_name)
+    }
+  }
+  
+  ## value passed in from dataframe
+  no_dollar <- tail(strsplit(paresed_name, split = "$", fixed = TRUE)[[1]], n = 1)
+  xname <- strsplit(no_dollar, split = '\"', fixed = TRUE)[[1]]
+  keep_idx <- which(grepl("\\[|\\]", xname) == FALSE)
+  xname <- xname[keep_idx]
+
+  return(xname)
+}
+
+rescale_frequencies <- function(freq_mat, clones, parents, filtered_idx=NULL,  data_type="size", scale_by_sizes_at_time=FALSE){
+  ### Can rescale the frequencies to only show what was detected
+  if(is.null(filtered_idx)){
+    filtered_idx <- seq(1, nrow(freq_mat))
+  }
+  
+  if(data_type=="size"){
+    sink("/dev/null") ### Suppress output
+    freq_df <- get_mutation_df(freq_mat[filtered_idx, ], clones = clones, parents = parents)
+    sink()
+    freq_mat <- as.matrix(freq_df)
+  }else{
+    freq_mat <- as.matrix(freq_mat[filtered_idx,])
+  }
+  
+  
+  max_mutation_size <- max(freq_mat)
+  if(scale_by_sizes_at_time){
+    max_sizes_at_each_time <- apply(freq_mat, 2, max)
+    freq_mat <- sweep(freq_mat, MARGIN = 2, max_sizes_at_each_time, FUN = "/")
+    
+  }else{
+    freq_mat <- freq_mat/max_mutation_size
+  }
+  
+  return(freq_mat)
+}

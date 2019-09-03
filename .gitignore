@@ -14,3 +14,11 @@ R/fix_tree.R
 *.gif
 
 rescaled_after_thresh.png
+
+barcode_rescaled_frequencies.png
+
+barcode_true_frequencies.png
+
+irregular_timepoints.png
+
+R/Tdata.csv
