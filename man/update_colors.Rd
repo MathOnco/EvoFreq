@@ -7,8 +7,8 @@
 Update the colors of clones in the frequency dynamics dataframe or dendrogram plot dataframe}
 \usage{
 update_colors(evo_freq_df, clones, fill_value = NULL,
-  clone_cmap = NULL, fill_range = NULL, attribute_val_name = NULL,
-  shuffle_colors = F)
+  clone_cmap = NULL, fill_range = NULL, fill_name = NULL,
+  shuffle_colors = FALSE)
 }
 \arguments{
 \item{evo_freq_df}{Dataframe returned by \code{\link{get_evofreq}} or \code{\link{get_evogram}} , which contains the information to plot the frequency dynamics}
@@ -21,7 +21,7 @@ update_colors(evo_freq_df, clones, fill_value = NULL,
 
 \item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
 
-\item{attribute_val_name}{String defining the name of the attribute used for coloring. If NULL, the default, the name will be inferred from the \code{fill_value} argument.}
+\item{fill_name}{String defining the name of the attribute used for coloring. If NULL, the default, the name will be inferred from the \code{fill_value} argument.}
 
 \item{shuffle_colors}{Boolean determining if colors should be shuffled before being assigned to each clone. Only applies when fill_value = NULL}
 }

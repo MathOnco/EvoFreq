@@ -38,6 +38,6 @@ freq_frame <- get_evofreq(example.easy.wide[,seq(3,10)], example.easy.wide$clone
 evofreq_plot <- plot_evofreq(freq_frame)
 clone_labels <- get_evofreq_labels(freq_frame, extant_only=FALSE)
 
-### Set evofreq_plot and apply_labels = T to get a labeled plot back
+### Set evofreq_plot and apply_labels = TRUE to get a labeled plot back
 get_evofreq_labels(freq_frame, extant_only=FALSE, evofreq_plot = evofreq_plot, apply_labels = TRUE)
 }

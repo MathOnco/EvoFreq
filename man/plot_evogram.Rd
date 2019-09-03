@@ -6,7 +6,7 @@
 Plot dendrogram}
 \usage{
 plot_evogram(dendro_pos_df, link_df, fill_range = NULL, node_size = 5,
-  scale_by_node_size = T, orientation = "td", depth = "origin")
+  scale_by_node_size = TRUE, orientation = "td", depth = "origin")
 }
 \arguments{
 \item{dendro_pos_df}{Position of nodes returned by \code{\link{get_evogram}}}
@@ -64,7 +64,7 @@ attr_size_df <- example.easy.wide.with.attributes[, time_col_idx]
 attr_parents <- example.easy.wide.with.attributes$parent
 attr_clones <- example.easy.wide.with.attributes$clone
 fitness <- example.easy.wide.with.attributes$fitness
-#' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, attribute_val_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, fill_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
 attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 attribute_tree_pos <- attribute_dendro_df$dendro_pos
 attribute_elbow_links <- attribute_dendro_df$links

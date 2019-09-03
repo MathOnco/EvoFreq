@@ -5,7 +5,7 @@
 \title{\code{plot_evofreq} Plots the frequency dynamics using ggplot. Can also use info to create animations}
 \usage{
 plot_evofreq(freq_frame, n_time_pts = NULL, start_time = NULL,
-  end_time = NULL, bw = 0.05, bc = "grey75", show_axes = T,
+  end_time = NULL, bw = 0.05, bc = "grey75", show_axes = TRUE,
   fill_range = NULL)
 }
 \arguments{

@@ -6,7 +6,8 @@
 \code{long_to_wide_freq_ready} Converts long data frame to wide format used by evofreq.}
 \usage{
 long_to_wide_freq_ready(edges_df, long_pop_sizes_df, time_col_name,
-  clone_col_name, parent_col_name, size_col_name, fill_gaps_in_size = F)
+  clone_col_name, parent_col_name, size_col_name,
+  fill_gaps_in_size = FALSE)
 }
 \arguments{
 \item{edges_df}{Dataframe with 2 columns, where each row defines relation between each clone and their parent. One column contains the clone ids, and the other contains the id of that clone's parent.}

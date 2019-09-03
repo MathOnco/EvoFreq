@@ -8,9 +8,10 @@ View changes in the dendrogram over time. Has most of the same options as \code{
 \usage{
 animate_evogram(size_df, clones, parents, fill_value = NULL,
   fill_range = NULL, time_pts = NULL, clone_cmap = NULL,
-  threshold = 0.01, data_type = "size", fill_gaps_in_size = F,
-  test_links = T, node_size = 5, scale_by_node_size = T,
-  orientation = "td", depth = "origin")
+  threshold = 0.01, data_type = "size", fill_gaps_in_size = FALSE,
+  test_links = TRUE, node_size = 5, scale_by_node_size = TRUE,
+  orientation = "td", depth = "origin",
+  rescale_after_thresholding = FALSE)
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
@@ -42,6 +43,8 @@ animate_evogram(size_df, clones, parents, fill_value = NULL,
 \item{orientation}{Defines orientation of the tree: "td" draws it top-down, "lr" draws it left-right}
 
 \item{depth}{Determines the y-position of the nodes: "level" places the nodes based on how deeply they are nested in the tree, "origin" makes the y-position the same as the clone's origin time, "bottom" positions nodes so that all leaves have the same position, furthest from the root}
+
+\item{rescale_after_thresholding}{Boolean determining if frequencies should be rescaled after thresholding, so that frequencies are based on what was above the threshold.}
 }
 \value{
 List infromation need to craete the animation: "dendro_pos_df" contains all of the positions of the nodes and edges at each timestep, while "animation_plot" that can be used with gganimate to create the animation. For details on how to customize and save the animation, see \code{\link[gganimate]{gganimate}}

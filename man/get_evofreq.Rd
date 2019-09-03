@@ -8,10 +8,11 @@
 \usage{
 get_evofreq(size_df, clones, parents, fill_value = NULL,
   fill_range = NULL, time_pts = NULL, clone_cmap = NULL,
-  threshold = 0.01, scale_by_sizes_at_time = F, data_type = "size",
-  interpolation_steps = 20, interp_method = "monoH.FC",
-  fill_gaps_in_size = F, test_links = T, add_origin = F,
-  tm_frac = 0.6, rescale_after_thresholding = F, shuffle_colors = F)
+  threshold = 0.01, scale_by_sizes_at_time = FALSE,
+  data_type = "size", interpolation_steps = 20,
+  interp_method = "monoH.FC", fill_gaps_in_size = FALSE,
+  test_links = TRUE, add_origin = FALSE, tm_frac = 0.6,
+  rescale_after_thresholding = FALSE, shuffle_colors = FALSE)
 }
 \arguments{
 \item{size_df}{Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint}
