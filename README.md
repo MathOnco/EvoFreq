@@ -155,7 +155,7 @@ One of the most powerful features is the endless additions that can be added to 
 
 For a full list of the different functions and example datasets please use `help(package="EvoFreq")`.
 
-## EvoFreq with HAL <a name="evofreq"/>
+## EvoFreq with HAL <a name="hal"/>
 
 [HAL](https://github.com/MathOnco/HAL) now provides functionality that makes visualizing model data with EvoFreq easy. A great blog post illustrates how to do this found [here](http://blog.mathematical-oncology.org/evofreq-and-hal.html).
 
