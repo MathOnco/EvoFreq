@@ -1,4 +1,4 @@
-#'@import colormap ggplot2 dplyr bezier
+#'@import ggplot2 dplyr bezier
 
 #'@title get_evofreq
 #'
