@@ -3,6 +3,11 @@ Visualization Package for Evolutionary Dynamics from Sequence and Model Data. bi
 
 ## Table of Contents  
 [Installation](#Installation)
+[Quick Start](#QuickStart)
+[Data Inputs](#DataInputs)
+[Subclonal Reconstructions](#bioinformatics)
+[Paired with HAL](#hal)
+[Papers using EvoFreq](#evofreq)
 
 ## Installation <a name="Installation"/>
 
@@ -12,7 +17,7 @@ library(devtools)
 install_github('MathOnco/EvoFreq')
 ```
 
-## Using EvoFreq
+## Using EvoFreq <a name="QuickStart"/>
 
 EvoFreq has two primary functions: `get_evofreq()` and the final rendering of these frequencies using `plot_evofreq()`. To quckly see all the functions within EvoFreq use `help(package="EvoFreq")`. The quickest way to see an EvoFreq plot is to use:
 ```R
@@ -27,7 +32,7 @@ evo_freq_p <- plot_evofreq(freq_frame) # Get an EvoFreq plot
 
 Below you will find more useful tools, information, and features.
 
-### Flexibility in data formats
+### Flexibility in data formats <a name="DataInputs"/>
 
 A goal of EvoFreq was to increase the flexibility in the input data. To this end we employ functions to use both long and wide dataframes.
 
@@ -100,7 +105,7 @@ grid.arrange(evo_freq_p,evo_freq_labeled_p,evo_freq_labeled_p_custom, nrow=1)
 ```
 ![img](img/easy.long.image.png)
 
-## Visualizing outputs from Subclonal Reconstruction tools
+## Visualizing outputs from Subclonal Reconstruction tools <a name="bioinformatics"/>
 
 EvoFreq has necessary functions for visualizing [PhyloWGS](https://github.com/morrislab/phylowgs) and [CALDER](https://github.com/raphael-group/calder) outputs. Similar to other tools, [CloneEvol](https://github.com/hdng/clonevol) outputs are already compatible.
 
@@ -150,7 +155,11 @@ One of the most powerful features is the endless additions that can be added to 
 
 For a full list of the different functions and example datasets please use `help(package="EvoFreq")`.
 
-## Current Papers utilizing EvoFreq
+## EvoFreq with HAL <a name="evofreq"/>
+
+[HAL](https://github.com/MathOnco/HAL) now provides functionality that makes visualizing model data with EvoFreq easy. A great blog post illustrates how to do this found [here](http://blog.mathematical-oncology.org/evofreq-and-hal.html).
+
+## Current Papers utilizing EvoFreq <a name="evofreq"/>
 
 These papers have used EvoFreq for their publication ready images.
 
