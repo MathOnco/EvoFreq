@@ -185,10 +185,12 @@ scale_value <- function(x, in_min, in_max, out_min, out_max){
 
 rgb2hex <- function(cvals){
   ### FOR TESTING ###
-  # cvals <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+  # cvals <- sapply(seq(1, 10), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+  # cvals <- sapply(seq(1, 10), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=" ")})
   ### FOR TESTING ###
-  
-  fill_mat <- t(sapply(cvals, function(x){as.numeric(strsplit(x, ",")[[1]])}))
+  delimiters <- c(" ", ",")
+  delimiter <- delimiters[which(sapply(delimiters, function(x){grepl(x, cvals[1])}))]
+  fill_mat <- t(sapply(cvals, function(x){as.numeric(strsplit(x, delimiter)[[1]])}))
   max_fill_val <- max(fill_mat)
   if(max_fill_val <= 1){
     max_fill_val <- 1
@@ -196,7 +198,7 @@ rgb2hex <- function(cvals){
     max_fill_val <- 255
   }
   
-  hex_colors <- sapply(seq(nrow(fill_mat)), function(x){rgb(fill_mat[x, 1], fill_mat[x, 3], fill_mat[x, 3], maxColorValue=max_fill_val, alpha=max_fill_val)})
+  hex_colors <- sapply(seq(nrow(fill_mat)), function(x){rgb(fill_mat[x, 1], fill_mat[x, 2], fill_mat[x, 3], maxColorValue=max_fill_val, alpha=max_fill_val)})
   return(hex_colors)
 }
 

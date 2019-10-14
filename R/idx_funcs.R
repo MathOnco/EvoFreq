@@ -122,6 +122,8 @@ get_pos <- function(clones, parents, mut_mat, og_time_pts=NULL){
       }else{
         total_child_area <- as.numeric(colSums(mut_mat[children_idx,]))
       }
+      
+      
       if(parent==roots_root){
         parent_area <- rep(1, n_time_pts)
         n_children <- 1
