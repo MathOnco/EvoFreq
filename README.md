@@ -3,10 +3,15 @@ Visualization Package for Evolutionary Dynamics from Sequence and Model Data. bi
 
 ## Table of Contents  
 [Installation](#Installation)
+
 [Quick Start](#QuickStart)
+
 [Data Inputs](#DataInputs)
+
 [Subclonal Reconstructions](#bioinformatics)
+
 [Paired with HAL](#hal)
+
 [Papers using EvoFreq](#evofreq)
 
 ## Installation <a name="Installation"/>
