@@ -16,7 +16,7 @@ Visualization Package for Evolutionary Dynamics from Sequence and Model Data. bi
 
 ## Installation <a name="Installation"/>
 
-Users have options ot install EvoFreq depending on if they want to use 'devtools'. Below we show two popular methods for installation.
+Users have options ot install EvoFreq depending on if they want to use 'devtools'. Below we show two popular methods for installation. You will need a fully operational install of [R (≥3.5.0)](https://www.r-project.org) and, optionally, [RStudio](https://rstudio.com/products/rstudio/).
 
 With devtools:
 ```R
