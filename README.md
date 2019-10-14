@@ -4,8 +4,7 @@ Visualization Package for Evolutionary Dynamics from Sequence and Model Data. bi
 ## Table of Contents  
 [Installation](#Installation)
 
-<a name="Installation"/>
-## Installation
+## Installation <a name="Installation"/>
 
 ```R
 install.packages('devtools')
