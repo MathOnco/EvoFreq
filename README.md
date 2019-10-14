@@ -18,13 +18,15 @@ Visualization Package for Evolutionary Dynamics from Sequence and Model Data. bi
 
 Users have options ot install EvoFreq depending on if they want to use 'devtools'. Below we show two popular methods for installation.
 
+With devtools:
 ```R
-# With devtools
 install.packages('devtools')
 library(devtools)
 install_github('MathOnco/EvoFreq')
+```
 
-# From a source download
+From source:
+```R
 # clone the repository and pass 'install.packages' the path to the cloned evofreq repository
 install.packages("./EvoFreq/", repos = NULL, type="source")
 library("EvoFreq")
