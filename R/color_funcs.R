@@ -1,4 +1,9 @@
-cmap_hex_list <- readRDS("cmap_hex_list.rds")
+
+# load("./data/cmap_hex_list.rdata")
+
+# bullshit
+data(cmap_hex_list)
+
 n_colors <- length(cmap_hex_list[[1]])
 get_colors <- function(n_clones, cmap_name){
   ### FOR TESTING ###
