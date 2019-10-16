@@ -43,7 +43,7 @@ clones <- example.easy.wide.with.attributes$clone
 fitness <- example.easy.wide.with.attributes$fitness
 
 #' 
-### Setting of colors can be done when getting the freq_frame, or by updating the color later using \\code{\\link{update_colors}}. Available colormaps are those found in \\code{\\link[colormap]{colormaps}}
+### Setting of colors can be done when getting the freq_frame, or by updating the color later using \\code{\\link{update_colors}}. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.
 ### Default colormap is rainbow_soft, but this can be changed using the \\code{clone_cmap} argument. 
 freq_frame <- get_evofreq(size_df, clones, parents)
 evo_p <- plot_evofreq(freq_frame)
@@ -65,7 +65,7 @@ named_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = 
 named_evo_p <- plot_evofreq(named_freq_frame)
 
 ### Custom colors can also be specified using hexcode
-hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+hex_clone_colors <- c("#614099ff", "#1d347eff", "#94558aff", "#c96872ff", "#f1884dff", "#e8fa5bff", "#042333ff","#f9bb41ff")
 hex_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = hex_clone_colors)
 hex_evo_p <- plot_evofreq(hex_freq_frame)
 

@@ -5,8 +5,8 @@ Authors@R: person(given="Ryan", family="Schenck",
                   email = "ryan.schenck@univ.ox.ac.uk",
                   role = c("aut","cre"))				
 Description: High throughput sequence data has provided in depth means of molecular characterization of tumor and normal tissue to elucidate clonal dynamics. Combined with growth measurements and histological characterization of tissue it is possible to build mechanistic models that seek to unravel temporal dynamics of somatic tissue and tumors. This necessitates a means of visualizing an increasingly complex set of data where current tools are lacking; furthermore, these tools must provide users with robust options for data input styles and representation. EvoFreq is a comprehensive tool set to visualize the evolutionary and population frequency dynamics of clones as a single point in time or as population frequencies over time using a variety of informative methods. EvoFreq expands substantially on previous means of visualizing the clonal, temporal dynamics and offers users increased options for their sequence or model data. 
-Depends: R (>= 3.5.0), ggplot2, colormap, reshape2, dplyr
-Imports: ggforce, gganimate, bezier
+Depends: R (>= 3.5.0), ggplot2, reshape2, dplyr
+Imports: gganimate, bezier
 License: GPL-3 | file LICENSE
 Encoding: UTF-8
 LazyData: true

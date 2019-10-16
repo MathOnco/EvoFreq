@@ -189,7 +189,9 @@ animate_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_rang
   }else{
     # p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
     colormap_name <- unique(d_pos_df$cmap)
-    p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
+    colorbar_colors <- get_colors(100, colormap_name)
+    p <- p + ggplot2::scale_fill_gradientn(colours = colorbar_colors, limits=fill_range)  #colorma
+    # p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
   }
   
   p <- p + ggplot2::theme_void()

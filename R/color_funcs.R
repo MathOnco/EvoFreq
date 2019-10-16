@@ -1,10 +1,24 @@
+
+data(cmap_hex_list)
+
+get_colors <- function(n_clones, cmap_name){
+  ### FOR TESTING ###
+  # n_clones <- 10
+  # cmap_name = "rainbow_soft"
+  #####
+  cmap_hex_vals <- cmap_hex_list[[cmap_name]]
+  color_ramp_fxn <- colorRampPalette(cmap_hex_vals)
+  cmap_vals <- color_ramp_fxn(n_clones)
+  return(cmap_vals)
+}
+
 #'@title update_colors
 #'
 #'Update the colors of clones in the frequency dynamics dataframe or dendrogram plot dataframe
 #'
 #'@inheritParams get_evofreq
 #'@param evo_freq_df Dataframe returned by \code{\link{get_evofreq}} or \code{\link{get_evogram}} , which contains the information to plot the frequency dynamics
-#'@param clone_cmap String defining which colormap should be used to color the clones (nodes) if no attributes to color by. For a list of available colormaps, see \code{\link[colormap]{colormaps}}. If color not in  \code{\link[colormap]{colormaps}}, it is assumed all colors should be the same
+#'@param clone_cmap String defining which colormap should be used to color the clones (nodes) if no attributes to color by. For a list of available colormaps, see https://github.com/bhaskarvk/colormap
 #'@param fill_name String defining the name of the attribute used for coloring. If NULL, the default, the name will be inferred from the \code{fill_value} argument. 
 #'@examples
 #' data("example.easy.wide")
@@ -13,16 +27,16 @@
 #' size_df <- example.easy.wide[, time_col_idx]
 #' parents <- example.easy.wide$parents
 #' clones <- example.easy.wide$clones
-#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
-#' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument. 
+#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.
+#' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument.
 #' freq_frame <- get_evofreq(size_df, clones, parents)
 #' evo_p <- plot_evofreq(freq_frame)
-#' 
+#'   
 #' ### Can color each clone by an attribute by providing a \code{fill_value}. Default colormap is viridis, but this can be changed using the \code{clone_cmap} argument. There is also the option to set the color range using the \code{fill_range} argument
 #' fitness <- runif(length(clones),0, 100)
 #' fitness_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = fitness, fill_range= c(0, 100))
-#' fitness_evo_p <- plot_evofreq(fitness_freq_frame, fill_range = c(0, 100))
-#'
+#' fitness_evo_p <- plot_evofreq(fitness_freq_frame,  fill_range = c(0, 100))
+#' 
 #' ### The user can also provide custom colors for each clone, which will need to be passed into the \code{fill_value} argument
 #' ### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
 #' rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
@@ -35,7 +49,7 @@
 #' named_evo_p <- plot_evofreq(named_freq_frame)
 #' 
 #' ### Custom colors can also be specified using hexcode
-#' hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+#' hex_clone_colors <- c("#614099ff", "#1d347eff", "#94558aff", "#c96872ff", "#f1884dff", "#e8fa5bff", "#042333ff","#f9bb41ff")
 #' hex_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = hex_clone_colors)
 #' hex_evo_p <- plot_evofreq(hex_freq_frame)
 #'
@@ -45,10 +59,10 @@
 #' tree_links <- dendro_df$links
 #' tree_p <- plot_evogram(tree_pos, tree_links)
 #'
-#'### Color node by fitness
+#' ### Color node by fitness
 #' tree_pos_fitness_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = fitness)
 #' tree_p_fitness <- plot_evogram(tree_pos_fitness_color, tree_links)
-#' #'### Color node using custom colors in hexcode format
+#' ### Color node using custom colors in hexcode format
 #' tree_info_custom_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = hex_clone_colors)
 #' tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 #'@export
@@ -150,7 +164,10 @@ get_clone_color <- function(n_clones, cmap="rainbow_soft"){
   ### FOR TESTING ###
   # n_clones <- length(clones)
   ####
-  pop_colors <-  colormap::colormap(colormap=colormap::colormaps[cmap][[1]], nshades=n_clones+1)[1:n_clones]
+  # pop_colors <-  colormap::colormap(colormap=colormap::colormaps[cmap][[1]], nshades=n_clones+1)[1:n_clones]
+  # n_clones, cmap_name
+  # pop_colors <-  get_colors(n_clones+1, cmap)[1:n_clones]
+  pop_colors <-  get_colors(n_clones+1, cmap)[1:n_clones]
   return(pop_colors)
 }
 
@@ -173,7 +190,8 @@ get_attribute_colors <- function(x, min_x =NULL, max_x = NULL, n_color_bins = 10
   bin_breaks <- seq(min_x, max_x , length.out = n_color_bins)
   bin_number <- findInterval(x, bin_breaks, rightmost.closed = FALSE, all.inside=TRUE)
   
-  cmap_colors <- colormap::colormap(colormaps[cmap][[1]], nshades=n_color_bins)
+  # cmap_colors <- colormap::colormap(colormaps[cmap][[1]], nshades=n_color_bins)
+  cmap_colors <- get_colors(n_color_bins, cmap)
   colors <- cmap_colors[bin_number]
   return(colors)
 }
@@ -185,10 +203,12 @@ scale_value <- function(x, in_min, in_max, out_min, out_max){
 
 rgb2hex <- function(cvals){
   ### FOR TESTING ###
-  # cvals <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+  # cvals <- sapply(seq(1, 10), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
+  # cvals <- sapply(seq(1, 10), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=" ")})
   ### FOR TESTING ###
-  
-  fill_mat <- t(sapply(cvals, function(x){as.numeric(strsplit(x, ",")[[1]])}))
+  delimiters <- c(" ", ",")
+  delimiter <- delimiters[which(sapply(delimiters, function(x){grepl(x, cvals[1])}))]
+  fill_mat <- t(sapply(cvals, function(x){as.numeric(strsplit(x, delimiter)[[1]])}))
   max_fill_val <- max(fill_mat)
   if(max_fill_val <= 1){
     max_fill_val <- 1
@@ -196,7 +216,7 @@ rgb2hex <- function(cvals){
     max_fill_val <- 255
   }
   
-  hex_colors <- sapply(seq(nrow(fill_mat)), function(x){rgb(fill_mat[x, 1], fill_mat[x, 3], fill_mat[x, 3], maxColorValue=max_fill_val, alpha=max_fill_val)})
+  hex_colors <- sapply(seq(nrow(fill_mat)), function(x){rgb(fill_mat[x, 1], fill_mat[x, 2], fill_mat[x, 3], maxColorValue=max_fill_val, alpha=max_fill_val)})
   return(hex_colors)
 }
 

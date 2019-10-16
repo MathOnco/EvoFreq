@@ -84,7 +84,7 @@ evo_freq_p <- plot_evofreq(freq_frame)
 print(evo_freq_p)
 
 # We can also choose to update the colors or do this during the first creation. (shown on the right below)
-clone_dynamics_df_jet <- update_colors(freq_frame, clone_cmap = "jet")
+clone_dynamics_df_jet <- update_colors(freq_frame, example.easy.wide$clones, clone_cmap = "jet")
 evo_freq_p_jet <- plot_evofreq(clone_dynamics_df_jet)
 print(evo_freq_p_jet)
 ```

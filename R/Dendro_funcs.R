@@ -357,7 +357,10 @@ get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   # fill_value <- clone_df$Passengers
   # threshold <- 0.02
   # clone_cmap <- "rainbow_soft"
-  # size_df <- size_df
+  
+  # size_df <- hal_info$size_df
+  # clones <- hal_info$clones
+  # parents <- hal_info$parents
   # time_pt <- NULL
   # data_type <- "size"
   # scale_by_sizes_at_time <- FALSE
@@ -365,18 +368,11 @@ get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   # test_links <- TRUE
   # threshold <- 0.01
   # link_type <- "elbow"
+  # rescale_after_thresholding <- F
+  # fill_value <- NULL
   # # ###
   
-  
-  # if(!is.null(fill_value)){
-  #   fill_name <- get_argname(fill_value)
-  #   attribute_df <- data.frame("clone_id"=clones, "parents"=parents)
-  #   attribute_df[fill_name] <- fill_value
-  # }else{
-  #   attribute_df <- NULL
-  #   fill_name <- NULL
-  # }
-  
+
   if(!is.null(fill_value)){
     fill_name <- colnames(fill_value) ### Value was passed in  using a string to get the column, e.g. df[fill_name]
     if(is.null(fill_name)){
@@ -403,6 +399,14 @@ get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   dendro_pos <- get_dendrogram_pos(to_plot_df$attributes, clones_for_d = to_plot_df$clones, parents_for_d = to_plot_df$parents)
   if(!is.null(attribute_df)){
     attribute_df <- to_plot_df$attributes
+  }
+  
+  ### At this point, origin times are based on the column idx. Needs to also include actual timepoints
+  actual_time_pts <- colnames(size_df)
+  dendro_pos$origin_time <- actual_time_pts[dendro_pos$origin]
+  any_non_numeric_time_pts <- suppressWarnings(any(is.na(as.numeric(dendro_pos$origin_time))))
+  if(! any_non_numeric_time_pts){
+    dendro_pos$origin <- as.numeric(dendro_pos$origin_time)
   }
   
   dendro_pos <- update_colors(evo_freq_df = dendro_pos, clones = clones, fill_value = fill_value, clone_cmap = clone_cmap, fill_range = fill_range, fill_name=fill_name, shuffle_colors=shuffle_colors)
@@ -462,7 +466,7 @@ get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
 #' attr_parents <- example.easy.wide.with.attributes$parent
 #' attr_clones <- example.easy.wide.with.attributes$clone
 #' fitness <- example.easy.wide.with.attributes$fitness
-#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, fill_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package. For a list of available colormaps, see https://github.com/bhaskarvk/colormap
 #' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 #' attribute_tree_pos <- attribute_dendro_df$dendro_pos
 #' attribute_elbow_links <- attribute_dendro_df$links
@@ -470,10 +474,10 @@ get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
 #' @export
 plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, scale_by_node_size=TRUE, orientation="td", depth="origin"){
   ### FOR TESTING ### 
-  # dendro_pos_df <- hal_info$dendro_pos
-  # link_df <- hal_info$dendro_links
+  # dendro_pos_df <- hal_dendro_df$dendro_pos
+  # link_df <- hal_dendro_df$links
   # scale_by_node_size = TRUE
-  # orientation="lr" #= top_down, "lr" left right
+  # orientation="td" #= top_down, "lr" left right
   # depth <- "origin"
   # fill_range <- NULL
   ###
@@ -485,6 +489,8 @@ plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, s
     y_name <- "origin_y"
     end_y_name <- "end_origin"
     dendro_pos_df$origin_y <- dendro_pos_df$origin
+    time_levels <- as.numeric(as.character(unique(dendro_pos_df$origin)))
+    time_labels <- as.character(unique(dendro_pos_df$origin_time))
     if(link_type=="straight"){
       link_df$origin_y <- link_df$origin      
     }
@@ -521,7 +527,9 @@ plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, s
     p <- p + ggplot2::scale_color_identity()
   }else{
     colormap_name <- unique(dendro_pos_df$cmap)
-    p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
+    colorbar_colors <- get_colors(100, colormap_name)
+    p <- p + ggplot2::scale_fill_gradientn(colours = colorbar_colors, limits=fill_range)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    # p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
     # p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
   }
   
@@ -544,15 +552,25 @@ plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, s
     ggplot2::ylab(y_title)
   
   if(orientation=="lr"){
+    if(depth=="origin"){
+      p <- p + ggplot2::scale_y_continuous(breaks=time_levels, labels=time_labels) 
+    }
     p <- p + ggplot2::coord_flip() + 
       ggplot2::theme(axis.text.y = ggplot2::element_blank(),
                      axis.ticks.y = ggplot2::element_blank(),
-                     axis.title.y = ggplot2::element_blank())
+                     axis.title.y = ggplot2::element_blank(),
+                     axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
+
+    
   }else{
-    p <- p + ggplot2::scale_y_reverse() + 
-      ggplot2::theme(axis.text.x = ggplot2::element_blank(),
+    p <- p + ggplot2::theme(axis.text.x = ggplot2::element_blank(),
                      axis.ticks.x = ggplot2::element_blank(),
                      axis.title.x = ggplot2::element_blank())
+    if(depth=="origin"){
+       p <- p + ggplot2::scale_y_reverse(breaks=time_levels, labels=time_labels) 
+    }else{
+      p <- p + ggplot2::scale_y_reverse() 
+    }
   }
   
   return(p)
