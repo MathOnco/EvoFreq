@@ -84,7 +84,7 @@
 #' named_evo_p <- plot_evofreq(named_freq_frame)
 #' 
 #' ### Custom colors can also be specified using hexcode
-#' hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+#' hex_clone_colors <- c("#614099ff", "#1d347eff", "#94558aff", "#c96872ff", "#f1884dff", "#e8fa5bff", "#042333ff","#f9bb41ff")
 #' hex_freq_frame <- update_colors(rgb_freq_frame, clones = clones, fill_value = hex_clone_colors)
 #' hex_evo_p <- plot_evofreq(hex_freq_frame)
 #'
