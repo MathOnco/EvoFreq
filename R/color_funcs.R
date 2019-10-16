@@ -18,7 +18,7 @@ get_colors <- function(n_clones, cmap_name){
 #'
 #'@inheritParams get_evofreq
 #'@param evo_freq_df Dataframe returned by \code{\link{get_evofreq}} or \code{\link{get_evogram}} , which contains the information to plot the frequency dynamics
-#'@param clone_cmap String defining which colormap should be used to color the clones (nodes) if no attributes to color by. For a list of available colormaps, see \code{\link[colormap]{colormaps}}. If color not in  \code{\link[colormap]{colormaps}}, it is assumed all colors should be the same
+#'@param clone_cmap String defining which colormap should be used to color the clones (nodes) if no attributes to color by. For a list of available colormaps, see https://github.com/bhaskarvk/colormap
 #'@param fill_name String defining the name of the attribute used for coloring. If NULL, the default, the name will be inferred from the \code{fill_value} argument. 
 #'@examples
 #' data("example.easy.wide")
@@ -27,7 +27,7 @@ get_colors <- function(n_clones, cmap_name){
 #' size_df <- example.easy.wide[, time_col_idx]
 #' parents <- example.easy.wide$parents
 #' clones <- example.easy.wide$clones
-#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
+#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.
 #' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument.
 #' freq_frame <- get_evofreq(size_df, clones, parents)
 #' evo_p <- plot_evofreq(freq_frame)

@@ -466,7 +466,7 @@ get_evogram <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
 #' attr_parents <- example.easy.wide.with.attributes$parent
 #' attr_clones <- example.easy.wide.with.attributes$clone
 #' fitness <- example.easy.wide.with.attributes$fitness
-#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps packageattribute_dendro_df <- get_dendrogram(attr_size_df, attr_clones, attr_parents, attribute_df = attribute_df, fill_name = "fitness", clone_id_col_in_att_df = clone_id_col,  clone_cmap = "magma", link_type = "elbow")
+#' #' ### Can set color using attributes. Default colormap is viridis, but can be changed to any colormap available in the colormaps package. For a list of available colormaps, see https://github.com/bhaskarvk/colormap
 #' attribute_dendro_df <- get_evogram(attr_size_df, attr_clones, attr_parents, fill_value = fitness)
 #' attribute_tree_pos <- attribute_dendro_df$dendro_pos
 #' attribute_elbow_links <- attribute_dendro_df$links

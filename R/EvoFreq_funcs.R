@@ -7,10 +7,10 @@
 #'@param size_df Dataframe in a wide format, where each row corrsponds to a single clone, and the columns are the sizes of that clone at each timepoint
 #'@param clones Array containing the clone ids. The index of each clone must correspond to the same index of the row in \code{size_df} that contains the sizes of that clone over time
 #'@param parents Array containing the ids of the parent of each clone in the \code{clones} array.
-#'@param fill_value Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}
+#'@param fill_value Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are assigned according to those values. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}
 #'@param fill_range Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.
 #'@param time_pts Array containing the name of the timepoints. If NULL, then the name of timepoints will be a sequence from 1 to the number of columns in \code{size_df}.
-#'@param clone_cmap Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.
+#'@param clone_cmap Colormap to use for the clones. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.
 #'@param threshold The minimum frequency of clones to be plotted. Clones with with a frequency below this value will not be plotted
 #'@param scale_by_sizes_at_time Boolean defining whether or not the plot should represent the size or frequency of each clone at each timepoint. If TRUE, the sizes are scaled by the maximum size at each timepoint, and the plot thus represents the clonal frequencies at each timepoint. If FALSE, the sizes are scaled using the maximum size in \code{size_df}, thus reflecting relative population sizes
 #'@param data_type String defining what kind of information is in size_df. If "size", then the values in \code{size_df} are the population sizes. If "mutation", the values are the frequencies, between 0 and 1, of each mutation in the population over time
@@ -62,7 +62,7 @@
 #' freq_frame <- get_evofreq(size_df_from_long, clones_from_long, parents_from_long)
 #' evo_p_from_long <- plot_evofreq(freq_frame)
 #'
-#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
+#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.
 #' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument. 
 #' jet_freq_frame <- get_evofreq(size_df, clones, parents, clone_cmap = "jet")
 #' jet_evo_p <- plot_evofreq(jet_freq_frame)
@@ -801,7 +801,7 @@ smooth_pos <- function(sparse_pos_df, n_intermediate_steps=20, interp_method = "
 #' fitness <- example.easy.wide.with.attributes$fitness
 #' 
 #' #' 
-#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. Available colormaps are those found in \code{\link[colormap]{colormaps}}
+#' ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \code{\link{update_colors}}. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.
 #' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument. 
 #' freq_frame <- get_evofreq(size_df, clones, parents)
 #' evo_p <- plot_evofreq(freq_frame)
