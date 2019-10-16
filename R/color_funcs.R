@@ -1,8 +1,5 @@
 
-# load("./data/cmap_hex_list.rdata")
-cmap_hex_list <- readRDS("./EvoFreq_IMO_repo/data/cmap_hex_list.rds") ### TODO replace this with above line? Don't know what youre doing
-# bullshit. 
-# data(cmap_hex_list)
+data(cmap_hex_list)
 
 get_colors <- function(n_clones, cmap_name){
   ### FOR TESTING ###

@@ -38,14 +38,14 @@ size_df <- example.easy.wide[, time_col_idx]
 parents <- example.easy.wide$parents
 clones <- example.easy.wide$clones
 ### Setting of colors can be done when getting the freq_frame, or by updating the color later using \\code{\\link{update_colors}}. Available colormaps are those found in \\code{\\link[colormap]{colormaps}}
-### Default colormap is rainbow_soft, but this can be changed using the \\code{clone_cmap} argument. 
+### Default colormap is rainbow_soft, but this can be changed using the \\code{clone_cmap} argument.
 freq_frame <- get_evofreq(size_df, clones, parents)
 evo_p <- plot_evofreq(freq_frame)
-
+  
 ### Can color each clone by an attribute by providing a \\code{fill_value}. Default colormap is viridis, but this can be changed using the \\code{clone_cmap} argument. There is also the option to set the color range using the \\code{fill_range} argument
 fitness <- runif(length(clones),0, 100)
 fitness_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = fitness, fill_range= c(0, 100))
-fitness_evo_p <- plot_evofreq(fitness_freq_frame, fill_range = c(0, 100))
+fitness_evo_p <- plot_evofreq(fitness_freq_frame,  fill_range = c(0, 100))
 
 ### The user can also provide custom colors for each clone, which will need to be passed into the \\code{fill_value} argument
 ### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
@@ -59,7 +59,7 @@ named_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = name
 named_evo_p <- plot_evofreq(named_freq_frame)
 
 ### Custom colors can also be specified using hexcode
-hex_clone_colors <- sample(colormap::colormap(colormap=colormaps$temperature, nshades=length(clones)))
+hex_clone_colors <- c("#614099ff", "#1d347eff", "#94558aff", "#c96872ff", "#f1884dff", "#e8fa5bff", "#042333ff","#f9bb41ff")
 hex_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = hex_clone_colors)
 hex_evo_p <- plot_evofreq(hex_freq_frame)
 
@@ -72,7 +72,7 @@ tree_p <- plot_evogram(tree_pos, tree_links)
 ### Color node by fitness
 tree_pos_fitness_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = fitness)
 tree_p_fitness <- plot_evogram(tree_pos_fitness_color, tree_links)
-#'### Color node using custom colors in hexcode format
+### Color node using custom colors in hexcode format
 tree_info_custom_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = hex_clone_colors)
 tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 }
