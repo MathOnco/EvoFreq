@@ -528,7 +528,7 @@ plot_evogram <- function(dendro_pos_df, link_df, fill_range=NULL, node_size=5, s
   }else{
     colormap_name <- unique(dendro_pos_df$cmap)
     colorbar_colors <- get_colors(100, colormap_name)
-    ggevodyn <- ggevodyn + ggplot2::scale_fill_gradientn(colours = colorbar_colors, limits=fill_range)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    p <- p + ggplot2::scale_fill_gradientn(colours = colorbar_colors, limits=fill_range)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
     # p <- p + colormap::scale_color_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
     # p <- p + ggplot2::scale_color_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
   }
