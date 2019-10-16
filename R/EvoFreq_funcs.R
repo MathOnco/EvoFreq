@@ -909,8 +909,9 @@ plot_evofreq <- function(freq_frame, n_time_pts=NULL, start_time=NULL, end_time=
     ggevodyn <- ggevodyn + ggplot2::scale_fill_identity()
   }else{
     colormap_name <- unique(view_df$cmap)
-    # ggevodyn <- ggevodyn + ggplot2::scale_fill_gradientn(colours = colorbar_colors)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
-    ggevodyn <- ggevodyn + colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
+    colorbar_colors <- get_colors(100, colormap_name)
+    ggevodyn <- ggevodyn + ggplot2::scale_fill_gradientn(colours = colorbar_colors, limits=fill_range)  #colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name)
+    # ggevodyn <- ggevodyn + colormap::scale_fill_colormap(color_attribute_name, colormap=colormap_name, limits=fill_range)
   }
   
   if(! show_axes){

@@ -1,36 +1,18 @@
 
 # load("./data/cmap_hex_list.rdata")
+cmap_hex_list <- readRDS("./EvoFreq_IMO_repo/data/cmap_hex_list.rds") ### TODO replace this with above line? Don't know what youre doing
+# bullshit. 
+# data(cmap_hex_list)
 
-# bullshit
-data(cmap_hex_list)
-
-n_colors <- length(cmap_hex_list[[1]])
 get_colors <- function(n_clones, cmap_name){
   ### FOR TESTING ###
-  # n_clones <- length(clones)
-  # cmap_name <- cmap
-  ###################
-  
-  adj_cmap_name <- gsub("_", "-", cmap_name)
-  hex_vals <- cmap_hex_list[[adj_cmap_name]]
-  if(n_clones > n_colors){
-    print(paste("More than", n_colors, "clones. Will have to cycle through colors"))
-    cmap_idx <- rep(0, n_clones)
-    
-    idx <- 1
-    for(i in seq(n_clones)){
-      cmap_idx[i] <- idx
-      idx <- idx + 1
-      if(idx > n_colors){
-        idx <- 1
-      }
-    }
-    
-  }else{
-    cmap_idx <- as.integer(seq(1, length(hex_vals), length.out = n_clones))  
-  }
-  
-  return(hex_vals[cmap_idx])
+  # n_clones <- 10
+  # cmap_name = "rainbow_soft"
+  #####
+  cmap_hex_vals <- cmap_hex_list[[cmap_name]]
+  color_ramp_fxn <- colorRampPalette(cmap_hex_vals)
+  cmap_vals <- color_ramp_fxn(n_clones)
+  return(cmap_vals)
 }
 
 #'@title update_colors
@@ -52,29 +34,29 @@ get_colors <- function(n_clones, cmap_name){
 #' ### Default colormap is rainbow_soft, but this can be changed using the \code{clone_cmap} argument.
 #' freq_frame <- get_evofreq(size_df, clones, parents)
 #' evo_p <- plot_evofreq(freq_frame)
-#'  
+#'   
 #' ### Can color each clone by an attribute by providing a \code{fill_value}. Default colormap is viridis, but this can be changed using the \code{clone_cmap} argument. There is also the option to set the color range using the \code{fill_range} argument
 #' fitness <- runif(length(clones),0, 100)
 #' fitness_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = fitness, fill_range= c(0, 100))
-#' fitness_evo_p <- plot_evofreq(fitness_freq_frame, fill_range = c(0, 100))
+#' fitness_evo_p <- plot_evofreq(fitness_freq_frame,  fill_range = c(0, 100))
 #' 
 #' ### The user can also provide custom colors for each clone, which will need to be passed into the \code{fill_value} argument
 #' ### Custom colors can be defined using RGB values. Each color should be a string specifying the color channel values, separated by commas.
 #' rgb_clone_colors <- sapply(seq(1, length(clones)), function(x){paste(sample(0:255,size=3,replace=TRUE),collapse=",")})
 #' rgb_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = rgb_clone_colors)
 #' rgb_evo_p <- plot_evofreq(rgb_freq_frame)
-#'  
+#' 
 #' ### Custom colors can also be any of the named colors in R. A list of the colors can be found with \code{colors()}
 #' named_clone_colors <- sample(colors(), length(clones), replace = FALSE)
 #' named_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = named_clone_colors)
 #' named_evo_p <- plot_evofreq(named_freq_frame)
-#'  
+#' 
 #' ### Custom colors can also be specified using hexcode
 #' hex_clone_colors <- c("#614099ff", "#1d347eff", "#94558aff", "#c96872ff", "#f1884dff", "#e8fa5bff", "#042333ff","#f9bb41ff")
 #' hex_freq_frame <- update_colors(freq_frame, clones = clones, fill_value = hex_clone_colors)
 #' hex_evo_p <- plot_evofreq(hex_freq_frame)
-#' #'
-#' #' ### Method can also be used to update node colors of the dendrograms
+#'
+#' ### Method can also be used to update node colors of the dendrograms
 #' dendro_df <- get_evogram(size_df, clones, parents)
 #' tree_pos <- dendro_df$dendro_pos
 #' tree_links <- dendro_df$links
@@ -83,7 +65,7 @@ get_colors <- function(n_clones, cmap_name){
 #' ### Color node by fitness
 #' tree_pos_fitness_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = fitness)
 #' tree_p_fitness <- plot_evogram(tree_pos_fitness_color, tree_links)
-#' #'### Color node using custom colors in hexcode format
+#' ### Color node using custom colors in hexcode format
 #' tree_info_custom_color <- update_colors(evo_freq_df = tree_pos, clones = clones, fill_value = hex_clone_colors)
 #' tree_p_custom_color <- plot_evogram(tree_info_custom_color, tree_links)
 #'@export
