@@ -19,13 +19,13 @@ get_evogram(size_df, clones, parents, fill_value = NULL,
 
 \item{parents}{Array containing the ids of the parent of each clone in the \code{clones} array.}
 
-\item{fill_value}{Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are generated using  \code{\link[colormap]{colormaps}}. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}}
+\item{fill_value}{Array containing information that can be used to color each clone. If NULL (the default), each clone is assigned a color. If values are a clone attribute, e.g. fitness, then the colors are assigned according to those values. The user can also provide custom colors in 3 ways: 1) hexcode; 2) rgb values as a string, with each value being a the intensity of the color channel, each separated by commas, e.g. "255, 10, 128"; 3) Any of the named in colors in R, which can be found with \code{\link[grDevices]{colors}}}
 
 \item{fill_range}{Array containing the minimum and maximum values to set the range of colors. If NULL (the default), the range is determined directly from \code{fill_value}.}
 
 \item{time_pt}{Timepoint with which the dendrgram should be drawn}
 
-\item{clone_cmap}{Colormap to use for the clones. For a list of available colormaps, see \code{\link[colormap]{colormaps}}.}
+\item{clone_cmap}{Colormap to use for the clones. For a list of available colormaps, see https://github.com/bhaskarvk/colormap.}
 
 \item{threshold}{The minimum frequency of clones to be plotted. Clones with with a frequency below this value will not be plotted}
 
