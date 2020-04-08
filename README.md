@@ -186,3 +186,14 @@ These papers have used EvoFreq for their publication ready images.
 - Ryan O Schenck, Eunung Kim, Rafael Bravo, Jeffrey West, Simon Leedham, Darryl Shibata, Alexander R.A. Anderson. [Clonal Architecture of the Epidermis: Homeostasis Limits Keratinocyte Evolution](https://www.biorxiv.org/content/10.1101/548131v1). 2019. bioRxiv.
 - Jeffrey West, Ryan Schenck, Chandler Gatenbee, Mark Robertson-Tessi, Alexander RA Anderson. [Tissue structure accelerates evolution: premalignant sweeps precede neutral expansion](https://www.biorxiv.org/content/10.1101/542019v1). 2019. bioRxiv.
 - Jeffrey West, Li You, Joel Brown, Paul K. Newton, Alexander R. A. Anderson. [Towards multi-drug adaptive therapy](https://www.biorxiv.org/content/10.1101/476507v4). 2019. bioRxiv.
+
+## EvoFreq featured on Cancer Research cover:
+
+To create something like this yourself it's really simple. Just change your coordinates.
+```
+clone_dynamics_df <- get_evofreq(size_df, clones, parents, clone_cmap = "jet", data_type = "size", threshold=0, test_links = T, add_origin = T, interp_method = "bezier")
+p1 <- plot_evofreq(clone_dynamics_df)
+p1 <- p1 + coord_polar()
+```
+
+![img](img/EUsxsc_XsAAvtJO.jpg)
