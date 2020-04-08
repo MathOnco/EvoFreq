@@ -196,4 +196,4 @@ p1 <- plot_evofreq(clone_dynamics_df)
 p1 <- p1 + coord_polar()
 ```
 
-![img](img/EUsxsc_XsAAvtJO.jpg)
+![img](img/CancerResearchCover.png)
