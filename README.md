@@ -149,8 +149,8 @@ theFile <- "SA501_tree1.dot"
 theSoln <- "SA501_soln1.csv"
 calder.data <- parse_calder(theSoln, theFile)
 
-### Use the long_to_wide_size_df function to get the right data structure.
-wide_df <- long_to_wide_size_df(long_pop_sizes_df = calder.data$sizeDf,
+### Use the long_to_wide_freq_ready function to get the right data structure.
+wide_df <- long_to_wide_freq_ready(long_pop_sizes_df = calder.data$sizeDf,
                                 edges_df = calder.data$edges,
                                 time_col_name = "time",
                                 clone_col_name = "clone",
