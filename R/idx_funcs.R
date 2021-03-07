@@ -54,7 +54,7 @@ get_ancestor_idx_evo_freq <- function(clone_id, clone_list, parent_list){
   return(ancestral_idx)
 }
 
-get_pos <- function(clones, parents, mut_mat, og_time_pts=NULL){
+get_pos <- function(clones, parents, mut_mat, og_time_pts=NULL, stacked=FALSE){
   ### FOR TESTING ###
   # parents <- parents
   # clones <- clones
@@ -145,7 +145,11 @@ get_pos <- function(clones, parents, mut_mat, og_time_pts=NULL){
       }
       # n_children <- length(children_idx)### NOTE WAS HERE
       # n_children <- length(children_idx)
-      spacing <- (parent_area - total_child_area)/(n_children+1)
+      if(stacked){
+        spacing <- (parent_area - total_child_area)/2
+      } else {
+        spacing <- (parent_area - total_child_area)/(n_children+1)  
+      }
       # spacing[spacing < 0] <- min(spacing[spacing >= 0]) ###TODO DOES THIS WORK?
       
       ### Get bottom of parent's polygon
@@ -185,7 +189,10 @@ get_pos <- function(clones, parents, mut_mat, og_time_pts=NULL){
         bottom <- loc
         loc <- loc + child_size
         top <- loc
-        loc <- loc + spacing
+        
+        if(!stacked){
+          loc <- loc + spacing  
+        }
         
         # if(any(is.na(bottom))){
         #   print(paste("bottom positions are NA for clone", clone_id))
