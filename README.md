@@ -1,5 +1,5 @@
 # EvoFreq
-Visualization Package for Evolutionary Dynamics from Sequence and Model Data. biorxiv pre-print [here](https://www.biorxiv.org/content/10.1101/743815v1?rss=1).
+Visualization Package for Evolutionary Dynamics from Sequence and Model Data. The publication for EvoFreq is available in BMC Bioinformatics [here](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-019-3173-y).
 
 ## Table of Contents  
 [Installation](#Installation)
