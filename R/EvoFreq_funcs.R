@@ -22,6 +22,7 @@
 #'@param tm_frac Value between 0 and 1 that determines where the maximum growth rate is in the inferred origin sizes. Lower values result in earlier maximum growth
 #'@param rescale_after_thresholding Boolean determining if frequencies should be rescaled after thresholding, so that frequencies are based on what was above the threshold.
 #'@param shuffle_colors Boolean determining if colors should be shuffled before being assigned to each clone. Only applies when fill_value = NULL
+#'@param stacked Boolean determining if subclones should be stacked or sister branches should be separated by their parent clone.
 #'@return Formatted dataframe called a "freq_frame" containing the information needed to plot the frequency dynamics over time.
 #'
 #'@examples
@@ -93,7 +94,7 @@
 #'default_cmap_evo_p <- plot_evofreq(freq_frame_default_color)
 #'}
 #'@export
-get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = FALSE, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = FALSE, test_links=TRUE, add_origin=FALSE, tm_frac=0.6, rescale_after_thresholding=FALSE, shuffle_colors=FALSE){
+get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = NULL, time_pts=NULL, clone_cmap=NULL, threshold=0.01, scale_by_sizes_at_time = FALSE, data_type="size", interpolation_steps = 20, interp_method = "monoH.FC", fill_gaps_in_size = FALSE, test_links=TRUE, add_origin=FALSE, tm_frac=0.6, rescale_after_thresholding=FALSE, shuffle_colors=FALSE, stacked=FALSE){
   # # ## FOR TESTING ###
   # data("example.easy.wide.with.attributes")
   # ### Split dataframe into clone info and size info using fact timepoint column names can be converted to numeric values
@@ -170,7 +171,7 @@ get_evofreq <- function(size_df, clones, parents, fill_value=NULL, fill_range = 
   cat("\n")
   print("Getting Plot Positions")
   time_pts <- colnames(freq_mat)
-  plot_pos_df <- get_pos(clones, parents, freq_mat, as.numeric(time_pts))
+  plot_pos_df <- get_pos(clones, parents, freq_mat, as.numeric(time_pts), stacked)
   
 
   if(interpolation_steps > 0){
